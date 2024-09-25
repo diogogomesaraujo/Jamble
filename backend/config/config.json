@@ -1,0 +1,21 @@
+{
+  "development": {
+    "database": "jamble",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  },
+  "test": {
+    "username": "your_db_username",
+    "password": "your_db_password",
+    "database": "jamble_test",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  },
+  "production": {
+    "username": "your_db_username",
+    "password": "your_db_password",
+    "database": "jamble_production",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  }
+}
