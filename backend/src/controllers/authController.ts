@@ -1,65 +1,20 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import User from '../models/userModel';
+import passport from 'passport';
 
-// Non-Spotify user registration
-export const register = async (req: Request, res: Response): Promise<void> => {
-    const { username, email, password } = req.body;
-    try {
-        // Check if user already exists
-        const existingUser = await User.findOne({ where: { email } });
-        if (existingUser) {
-            res.status(400).json({ message: 'User already exists' });
-            return;
-        }
-
-        // Hash the password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Create the new user
-        const user = await User.create({
-            username,
-            email,
-            password: hashedPassword,
-            is_spotify_account: false,
-        });
-
-        // Generate a JWT token
-        const token = jwt.sign({ user_id: user.user_id }, process.env.JWT_SECRET as string, {
-            expiresIn: '1h',
-        });
-
-        res.status(201).json({ token, user });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
-    }
+export const spotifyLogin = (req: Request, res: Response, next: any) => {
+    passport.authenticate('spotify', { scope: ['user-read-email'] })(req, res, next);
 };
 
-// Non-Spotify user login
-export const login = async (req: Request, res: Response): Promise<void> => {
-    const { email, password } = req.body;
-    try {
-        const user = await User.findOne({ where: { email } });
-        if (!user || user.is_spotify_account) {
-            res.status(400).json({ message: 'Invalid credentials' });
-            return;
-        }
+export const spotifyCallback = (req: Request, res: Response) => {
+    const user = req.user as { token: string; user: any };
 
-        // Compare passwords
-        const isMatch = await bcrypt.compare(password, user.password as string);
-        if (!isMatch) {
-            res.status(400).json({ message: 'Invalid credentials' });
-            return;
-        }
-
-        // Generate a JWT token
-        const token = jwt.sign({ user_id: user.user_id }, process.env.JWT_SECRET as string, {
-            expiresIn: '1h',
-        });
-
-        res.status(200).json({ token, user });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+    if (!user) {
+        return res.status(400).json({ message: 'Authentication failed' });
     }
+
+    res.status(200).json({
+        message: 'Spotify authentication successful',
+        token: user.token,
+        user: user.user,
+    });
 };
