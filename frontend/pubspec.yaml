@@ -32,6 +32,7 @@ dependencies:
     sdk: flutter
   flutter_svg: ^2.0.0
   font_awesome_flutter: ^10.4.0
+  google_fonts: ^5.0.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -74,15 +75,10 @@ flutter:
 
 
   fonts:
-    - family: Lora
+    - family: Poppins
       fonts:
-        - asset: assets/fonts/Lora-Regular.ttf
-        - asset: assets/fonts/Lora-Bold.ttf
-          weight: 700
-    - family: Inter
-      fonts:
-        - asset: assets/fonts/Inter_18pt-Regular.ttf
-        - asset: assets/fonts/Inter_18pt-Bold.ttf
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Bold.ttf
           weight: 700
   #
   # For details regarding fonts from package dependencies,

@@ -8,7 +8,7 @@ const Color grey = Color(0xFFDDDDDD);      // 100% opacity
 const Color peach = Color(0xFFFEA57D);     // 100% opacity
 const Color white100 = Color(0xFFFFFFFF);  // 100% opacity
 
-class LoginScreen extends StatelessWidget {
+class SignUpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
@@ -26,16 +26,16 @@ class LoginScreen extends StatelessWidget {
                   children: [
                     SvgPicture.asset(
                       'assets/flower.svg',
-                      height: 50,  // Image size matches the provided design
+                      height: 50,  // Increased size to match the Figma design
                       width: 50,
                     ),
                     SizedBox(height: 8),
                     Text(
-                      "Hello again!",
+                      "Let’s sign you up!",
                       style: TextStyle(
                         fontFamily: 'Poppins',  // Ensure Poppins is used
                         fontWeight: FontWeight.w700,  // Bold weight for Poppins
-                        fontSize: 28,  // Matches design
+                        fontSize: 28,  // Adjusted size to match design
                         color: darkRed,
                       ),
                     ),
@@ -46,7 +46,7 @@ class LoginScreen extends StatelessWidget {
 
               // Subtitle
               Text(
-                "The best way to get the most out of our app is to participate actively.",
+                "Create an account to ramble about your favourite jams with your friends!",
                 style: TextStyle(
                   fontSize: 14,
                   fontFamily: 'Poppins',  // Ensure the font is consistent
@@ -55,11 +55,34 @@ class LoginScreen extends StatelessWidget {
               ),
               SizedBox(height: 30),
               
-              // Username or Email field
+              // Username field
               Text(
-                "Username or Email",
+                "Username",
                 style: TextStyle(
                   fontFamily: 'Poppins',  // Ensure the font is consistent
+                  fontWeight: FontWeight.bold,
+                  color: darkRed,  // Using dark red
+                ),
+              ),
+              CupertinoTextField(
+                placeholder: "samplename",
+                padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                placeholderStyle: TextStyle(
+                  color: darkRed.withOpacity(0.5),
+                ),
+                style: TextStyle(color: darkRed),  // Corrected input text color to dark red
+                decoration: BoxDecoration(
+                  border: Border.all(color: grey),  // Using grey for border
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+              SizedBox(height: 20),
+              
+              // Email field
+              Text(
+                "Email Address",
+                style: TextStyle(
+                  fontFamily: 'Poppins',
                   fontWeight: FontWeight.bold,
                   color: darkRed,  // Using dark red
                 ),
@@ -100,30 +123,9 @@ class LoginScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(5),
                 ),
               ),
-
-              SizedBox(height: 5),
-              
-              // Recover Password
-              Align(
-                alignment: Alignment.centerRight,
-                child: GestureDetector(
-                  onTap: () {
-                    // Handle password recovery
-                  },
-                  child: Text(
-                    "Recover password",
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal,
-                      color: darkRed.withOpacity(0.6),
-                    ),
-                  ),
-                ),
-              ),
               SizedBox(height: 30),
-
-              // Login Button
+              
+              // Custom-styled Sign Up Button with Peach Background and correct shadow
               Center(
                 child: Container(
                   width: double.infinity,
@@ -142,12 +144,12 @@ class LoginScreen extends StatelessWidget {
                     onPressed: () {},
                     padding: EdgeInsets.symmetric(vertical: 12),  // Adjusted thickness to be thinner
                     child: Text(
-                      "Login",
+                      "Sign Up",
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         color: white100,  // White text color
                         fontSize: 14, // Adjusted to match text size
-                        fontWeight: FontWeight.normal,
+                        fontWeight: FontWeight.normal,  // Slightly bolder text
                       ),
                     ),
                     color: null,  // Transparent button background
@@ -155,7 +157,7 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 20),
-
+              
               // Custom Divider with 'or'
               Row(
                 children: [
@@ -167,11 +169,10 @@ class LoginScreen extends StatelessWidget {
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(
-                      "or",
+                    child: Text("or",
                       style: TextStyle(
                         fontFamily: 'Poppins',
-                        color: darkRed,  // Make "or" dark red
+                        color: darkRed, // Make "or" dark red
                         fontWeight: FontWeight.bold,  // Bold for "or"
                       ),
                     ),
@@ -185,7 +186,7 @@ class LoginScreen extends StatelessWidget {
                 ],
               ),
               SizedBox(height: 20),
-
+              
               // Spotify Button
               Center(
                 child: Container(
@@ -224,7 +225,7 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 30),
-
+              
               // Sign up text
               Center(
                 child: GestureDetector(
@@ -244,7 +245,7 @@ class LoginScreen extends StatelessWidget {
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             color: darkRed,  // Bold dark red for 'Sign up!'
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.bold
                           ),
                         ),
                       ],
