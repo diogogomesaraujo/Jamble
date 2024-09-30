@@ -1,0 +1,76 @@
+# Flutter/Dart specific
+**/build/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+.flutter/
+.env
+
+# Android specific
+**/android/app/debug.keystore
+**/android/local.properties
+**/android/.gradle/
+**/android/build/
+
+# iOS specific
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.flx
+**/ios/Flutter/app_framework_info.plist
+**/ios/Flutter/ephemeral/
+**/ios/.generated/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/*.xcconfig
+**/ios/ServiceDefinitions.json
+**/ios/Podfile.lock
+
+# Xcode specific
+**/ios/Runner.xcworkspace/
+**/ios/xcuserdata/
+**/ios/.vscode/
+*.pbxproj
+*.xcuserstate
+project.xcworkspace/
+
+# IntelliJ related
+.idea/
+*.iml
+
+# VS Code related
+.vscode/
+
+# macOS specific
+.DS_Store
+
+# Windows related
+windows/runner/Debug/
+windows/runner/Release/
+windows/flutter/generated_plugin_registrant.cc
+windows/CMakeLists.txt
+windows/.vs/
+
+# Linux specific
+linux/flutter/generated_plugin_registrant.cc
+linux/.vscode/
+
+# Web related
+web/.dart_tool/
+web/flutter/
+
+# Firebase specific
+**/ios/Runner/GoogleService-Info.plist
+**/android/app/google-services.json
+
+# Coverage
+coverage/
+
+# Generated files
+*.log

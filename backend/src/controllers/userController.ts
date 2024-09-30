@@ -11,16 +11,33 @@ const generateToken = (user_id: string): string => {
     });
 };
 
+// Helper function to send standardized error responses
+const sendErrorResponse = (res: Response, statusCode: number, message: string, error?: any) => {
+    return res.status(statusCode).json({
+        success: false,
+        message,
+        ...(error && { error: error.message || error.toString() }),
+    });
+};
+
+// Helper function to send standardized success responses
+const sendSuccessResponse = (res: Response, statusCode: number, message: string, data?: any) => {
+    return res.status(statusCode).json({
+        success: true,
+        message,
+        ...(data && { data }),
+    });
+};
+
 // Get all users
 export const getAllUsers = async (req: Request, res: Response): Promise<Response> => {
     try {
         const users = await User.findAll({
             attributes: ['user_id', 'username', 'email', 'is_spotify_account', 'created_at', 'updated_at'],
         });
-
-        return res.status(200).json(users); // Return statement added here to match the expected return type
+        return sendSuccessResponse(res, 200, 'Users retrieved successfully', users);
     } catch (error) {
-        return res.status(500).json({ message: 'Error retrieving users', error });
+        return sendErrorResponse(res, 500, 'Error retrieving users', error);
     }
 };
 
@@ -28,18 +45,30 @@ export const getAllUsers = async (req: Request, res: Response): Promise<Response
 export const createUser = async (req: Request, res: Response): Promise<Response> => {
     const { username, email, password } = req.body;
 
+    // Validate input
+    if (!username || username.length < 3) {
+        return sendErrorResponse(res, 400, 'Username must be at least 3 characters long');
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return sendErrorResponse(res, 400, 'Please provide a valid email address');
+    }
+    if (!password || password.length < 8) {
+        return sendErrorResponse(res, 400, 'Password must be at least 8 characters long');
+    }
+
     try {
-        if (!username || username.length < 3 || !email || password.length < 8) {
-            return res.status(400).json({
-                message: 'Invalid input data. Username must be at least 3 characters long and password must be at least 8 characters long.',
-            });
-        }
+        // Check if a user with this email or username already exists
+        const existingUser = await User.findOne({
+            where: {
+                [Op.or]: [{ email }, { username }],
+            },
+        });
 
-        const existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
-            return res.status(400).json({ message: 'User with this email already exists' });
+            return sendErrorResponse(res, 409, 'User with this email or username already exists');
         }
 
+        // Hash the password and create the user
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = await User.create({
             username,
@@ -49,9 +78,9 @@ export const createUser = async (req: Request, res: Response): Promise<Response>
         });
 
         const token = generateToken(newUser.user_id);
-        return res.status(201).json({ message: 'User created successfully', user: newUser, token });
+        return sendSuccessResponse(res, 201, 'User created successfully', { user: newUser, token });
     } catch (error) {
-        return res.status(500).json({ message: 'Server error', error });
+        return sendErrorResponse(res, 500, 'Server error during user registration', error);
     }
 };
 
@@ -60,27 +89,30 @@ export const completeProfile = async (req: Request, res: Response): Promise<Resp
     const { username } = req.body;
     const userId = (req.user as { user_id: string }).user_id;
 
+    // Validate username input
     if (!username || username.length < 3) {
-        return res.status(400).json({ message: 'Username must be at least 3 characters long' });
+        return sendErrorResponse(res, 400, 'Username must be at least 3 characters long');
     }
 
     try {
+        // Check if username is already taken
         const existingUser = await User.findOne({ where: { username } });
         if (existingUser) {
-            return res.status(400).json({ message: 'Username is already taken' });
+            return sendErrorResponse(res, 409, 'Username is already taken');
         }
 
+        // Update user profile
         const user = await User.findOne({ where: { user_id: userId } });
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return sendErrorResponse(res, 404, 'User not found');
         }
 
         user.username = username;
         await user.save();
 
-        return res.status(200).json({ message: 'Profile updated successfully', user });
+        return sendSuccessResponse(res, 200, 'Profile updated successfully', user);
     } catch (error) {
-        return res.status(500).json({ message: 'Server error', error });
+        return sendErrorResponse(res, 500, 'Server error during profile update', error);
     }
 };
 
@@ -88,34 +120,33 @@ export const completeProfile = async (req: Request, res: Response): Promise<Resp
 export const loginUser = async (req: Request, res: Response): Promise<Response> => {
     const { emailOrUsername, password } = req.body;
 
-    try {
-        // Input validation
-        if (!emailOrUsername || !password) {
-            return res.status(400).json({ message: 'Please provide an email or username and password' });
-        }
+    // Validate input
+    if (!emailOrUsername || !password) {
+        return sendErrorResponse(res, 400, 'Please provide an email/username and password');
+    }
 
-        // Find the user by either email or username
+    try {
+        // Find user by email or username
         const user = await User.findOne({
             where: {
                 [Op.or]: [{ email: emailOrUsername }, { username: emailOrUsername }],
-            }
+            },
         });
 
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return sendErrorResponse(res, 404, 'User not found');
         }
 
-        // Compare the entered password with the stored hashed password
+        // Compare passwords
         const isPasswordValid = await bcrypt.compare(password, user.password || '');
         if (!isPasswordValid) {
-            return res.status(401).json({ message: 'Invalid password' });
+            return sendErrorResponse(res, 401, 'Invalid password');
         }
 
         // Generate JWT token
         const token = generateToken(user.user_id);
-
-        return res.status(200).json({ message: 'Login successful', token, user });
+        return sendSuccessResponse(res, 200, 'Login successful', { token, user });
     } catch (error) {
-        return res.status(500).json({ message: 'Server error', error });
+        return sendErrorResponse(res, 500, 'Server error during login', error);
     }
 };

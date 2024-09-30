@@ -1,6 +1,7 @@
 import express, { Application } from 'express';
 import passport from 'passport';
-import session from 'express-session';  // Import express-session for session management
+import session from 'express-session';
+import cors from 'cors';  // Import CORS package
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import './services/spotifyAuthService';  // Import Spotify service to initialize passport strategy
@@ -22,6 +23,13 @@ app.use(
         cookie: { secure: false },  // Set to true in production if using HTTPS
     })
 );
+
+// Configure CORS to allow requests from Flutter app
+app.use(cors({
+    origin: '*',  // You can restrict this to specific origins for security (e.g., http://localhost:8080 or IP address)
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+}));
 
 // Initialize Passport with session support
 app.use(passport.initialize());
