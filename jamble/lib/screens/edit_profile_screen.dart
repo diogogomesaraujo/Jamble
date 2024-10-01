@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 
 // Define colors based on the provided palette
 const Color darkRed = Color(0xFF3E111B);
-const Color grey = Color(0xFFDDDDDD);
+const Color grey = Color(0xFFF2F2F2);
 const Color peach = Color(0xFFFEA57D);
 const Color white100 = Color(0xFFFFFFFF);
 
@@ -37,11 +37,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     Container(
                       width: MediaQuery.of(context).size.width,
                       height: 180,
-                      color: grey,
+                      color: grey, // Fully opaque light grey wallpaper
                       child: Icon(
-                        CupertinoIcons.photo,
-                        size: 80,
-                        color: darkRed.withOpacity(0.5),
+                        EvaIcons.imageOutline,
+                        size: 60,
+                        color: darkRed.withOpacity(0.3),
                       ),
                     ),
                     // Avatar overlapping the wallpaper
@@ -55,13 +55,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             height: 100,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: grey,
-                              border: Border.all(color: white100, width: 4), // White border
+                              color: grey, // Fully opaque light grey avatar
+                              border: Border.all(color: white100, width: 4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black
+                                      .withOpacity(0.05), // Subtle shadow
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Icon(
-                              CupertinoIcons.photo,
+                              EvaIcons.personOutline,
                               size: 50,
-                              color: darkRed.withOpacity(0.5),
+                              color: darkRed.withOpacity(0.3),
                             ),
                           ),
                           // Camera icon
@@ -76,17 +84,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 color: peach,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: grey.withOpacity(0.5),
-                                    blurRadius: 10,
-                                    offset: Offset(0, 4),
+                                    color: Colors.black
+                                        .withOpacity(0.1), // More subtle shadow
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
                                   ),
                                 ],
                               ),
                               child: Center(
-                                child: FaIcon(
-                                  FontAwesomeIcons.camera,
+                                child: Icon(
+                                  EvaIcons.camera,
                                   color: white100,
-                                  size: 15,
+                                  size: 16,
                                 ),
                               ),
                             ),
@@ -106,15 +115,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: grey.withOpacity(0.5),
-                                blurRadius: 10,
-                                offset: Offset(0, 4),
+                                color: Colors.black
+                                    .withOpacity(0.05), // Subtle shadow
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
                               ),
                             ],
                           ),
                           padding: const EdgeInsets.all(10.0),
-                          child: FaIcon(
-                            FontAwesomeIcons.arrowLeft,
+                          child: Icon(
+                            EvaIcons.arrowBackOutline,
                             color: darkRed,
                           ),
                         ),
@@ -145,7 +155,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 30.0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start, // Left-aligned text
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start, // Left-aligned text
                     children: [
                       // Username
                       Text(
@@ -159,7 +170,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       CupertinoTextField(
                         controller: _usernameController,
                         placeholder: "Username",
-                        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 15, horizontal: 10),
                         placeholderStyle: TextStyle(
                           color: darkRed.withOpacity(0.5),
                         ),
@@ -183,7 +195,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       CupertinoTextField(
                         controller: _emailController,
                         placeholder: "Email",
-                        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 15, horizontal: 10),
                         placeholderStyle: TextStyle(
                           color: darkRed.withOpacity(0.5),
                         ),
@@ -207,7 +220,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       CupertinoTextField(
                         controller: _descriptionController,
                         placeholder: "Description",
-                        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 15, horizontal: 10),
                         placeholderStyle: TextStyle(
                           color: darkRed.withOpacity(0.5),
                         ),
@@ -232,7 +246,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         controller: _passwordController,
                         obscureText: true, // Hide password input
                         placeholder: "Password",
-                        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 15, horizontal: 10),
                         placeholderStyle: TextStyle(
                           color: darkRed.withOpacity(0.5),
                         ),
@@ -244,7 +259,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       SizedBox(height: 20),
 
-                      // Spotify connection toggle
+                      // Spotify connection toggle with subtle shadow
                       Text(
                         "Connect to Spotify",
                         style: TextStyle(
@@ -254,14 +269,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       ),
                       SizedBox(height: 10),
-                      CupertinoSwitch(
-                        value: isSpotifyConnected,
-                        onChanged: (bool value) {
-                          setState(() {
-                            isSpotifyConnected = value;
-                          });
-                        },
-                        activeColor: peach,
+                      Container(
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black
+                                  .withOpacity(0.01), // Very subtle shadow
+                              blurRadius:
+                                  6, // Small blur to smooth the shadow without too much spread
+                              spreadRadius:
+                                  0, // No spread to keep the shadow close to the toggle
+                              offset: Offset(0,
+                                  1), // Slight downward offset for a smoother effect
+                            ),
+                          ],
+                        ),
+                        child: CupertinoSwitch(
+                          value: isSpotifyConnected,
+                          onChanged: (bool value) {
+                            setState(() {
+                              isSpotifyConnected = value;
+                            });
+                          },
+                          activeColor: peach,
+                        ),
                       ),
                       SizedBox(height: 20),
 
@@ -276,21 +307,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       SizedBox(height: 10),
 
-                      // Row for album containers with square dimensions and adjusted spacing
+                      // Row for album containers with subtle shadows
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween, // Stretch across the screen
+                        mainAxisAlignment: MainAxisAlignment
+                            .spaceBetween, // Stretch across the screen
                         children: List.generate(5, (index) {
                           return Container(
-                            width: MediaQuery.of(context).size.width * 0.16, // Set width to ensure square shape
-                            height: MediaQuery.of(context).size.width * 0.16, // Set height equal to width for square
+                            width: MediaQuery.of(context).size.width *
+                                0.13, // Smaller size
+                            height: MediaQuery.of(context).size.width *
+                                0.13, // Smaller size
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10), // Make sure the corners are rounded like in the image
-                              border: Border.all(color: grey),
-                              color: grey.withOpacity(0.2),
+                              borderRadius:
+                                  BorderRadius.circular(10), // Rounded corners
+                              color: grey,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black
+                                      .withOpacity(0.05), // Subtle shadow
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Icon(
-                              CupertinoIcons.add, // Use the plus icon
+                              CupertinoIcons.add,
                               color: darkRed.withOpacity(0.5),
+                              size: 18, // Adjusted for smaller container
                             ),
                           );
                         }),
@@ -308,7 +351,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             left: 0,
             right: 0,
             child: Container(
-              color: Colors.white.withOpacity(0.9), // Slight background to separate from content
+              color: Colors.white.withOpacity(
+                  0.9), // Slight background to separate from content
               padding: const EdgeInsets.all(20.0),
               child: Container(
                 width: double.infinity,
@@ -321,9 +365,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: peach.withOpacity(0.4),
-                      blurRadius: 15,
-                      offset: Offset(0, 6),
+                      color: peach.withOpacity(
+                          0.2), // More subtle shadow for the button
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
                     ),
                   ],
                 ),
