@@ -53,7 +53,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final spotifyAuthUrl = '$backendUrl/api/auth/spotify';
 
     if (await canLaunchUrl(Uri.parse(spotifyAuthUrl))) {
-      await launchUrl(Uri.parse(spotifyAuthUrl), mode: LaunchMode.externalApplication);
+      await launchUrl(Uri.parse(spotifyAuthUrl),
+          mode: LaunchMode.externalApplication);
     } else {
       setState(() {
         errorMessage = 'Could not launch Spotify login.';
@@ -117,11 +118,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       child: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          padding: const EdgeInsets.symmetric(
+              horizontal: 30.0), // Increased padding from 20 to 30
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
