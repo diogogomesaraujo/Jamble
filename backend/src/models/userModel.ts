@@ -11,6 +11,10 @@ interface UserAttributes {
     email: string;
     password?: string;
     is_spotify_account: boolean;
+    small_description?: string | null;
+    user_image?: string | null;
+    user_wallpaper?: string | null;
+    favorite_albums?: string[] | null;
     created_at?: Date;
     updated_at?: Date;
 }
@@ -23,6 +27,10 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
     public email!: string;
     public password?: string;
     public is_spotify_account!: boolean;
+    public small_description?: string | null;
+    public user_image?: string | null;
+    public user_wallpaper?: string | null;
+    public favorite_albums?: string[] | null;
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
 }
@@ -49,6 +57,25 @@ User.init(
         is_spotify_account: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
+        },
+        small_description: {
+            type: DataTypes.STRING,  // Short user bio/description
+            allowNull: true,
+        },
+        user_image: {
+            type: DataTypes.STRING,  // URL or path to user profile image
+            allowNull: true,
+        },
+        user_wallpaper: {
+            type: DataTypes.STRING,  // URL or path to user wallpaper
+            allowNull: true,
+        },
+        favorite_albums: {
+            type: DataTypes.ARRAY(DataTypes.STRING),  // Array to store Spotify album IDs or names
+            allowNull: true,
+            validate: {
+                len: [0, 5],  // Limit to 5 favorite albums
+            },
         },
         created_at: {
             type: DataTypes.DATE,
