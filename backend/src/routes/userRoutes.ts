@@ -1,6 +1,5 @@
 import { Router } from 'express';
-import passport from 'passport';
-import { getAllUsers, createUser, completeProfile, loginUser } from '../controllers/userController';
+import { getAllUsers, createUser, completeProfile, loginUser, editUser, deleteUser } from '../controllers/userController';
 import { authenticateJWT } from '../middlewares/authMiddleware';
 
 const router: Router = Router();
@@ -16,5 +15,11 @@ router.get('/users', getAllUsers);
 
 // Login route (email or username + password)
 router.post('/login', loginUser);
+
+// Edit user
+router.put('/edit', authenticateJWT, editUser);
+
+// Delete user
+router.delete('/delete', authenticateJWT, deleteUser);
 
 export default router;

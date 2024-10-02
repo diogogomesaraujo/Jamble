@@ -130,6 +130,8 @@ This will watch for changes in the `src` directory, and execute `ts-node` to run
 
 - `GET /api/users`: Fetch all users (for testing purposes).
 - `POST /api/users/complete-profile`: Complete the profile for Spotify users (set username).
+- `PUT /api/users/edit`: Edit user details (username, email, password, profile photo, wallpaper, description, and favorite albums).
+- `DELETE /api/users/delete`: Delete a user account.
 
 ## Spotify Integration
 

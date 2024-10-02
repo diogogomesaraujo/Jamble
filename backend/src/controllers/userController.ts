@@ -150,3 +150,82 @@ export const loginUser = async (req: Request, res: Response): Promise<Response> 
         return sendErrorResponse(res, 500, 'Server error during login', error);
     }
 };
+
+// Delete user
+export const deleteUser = async (req: Request, res: Response): Promise<Response> => {
+    const userId = (req.user as { user_id: string }).user_id;
+
+    try {
+        // Find the user by ID
+        const user = await User.findOne({ where: { user_id: userId } });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        await user.destroy();  // Delete the user
+
+        return res.status(200).json({ message: 'User deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Error deleting user', error });
+    }
+};
+
+// Edit user
+export const editUser = async (req: Request, res: Response): Promise<Response> => {
+    const {
+        username,
+        email,
+        password,
+        small_description,
+        user_image,
+        user_wallpaper,
+        favorite_albums
+    } = req.body;
+
+    const userId = (req.user as { user_id: string }).user_id;
+
+    try {
+        // Find the user by ID
+        const user = await User.findOne({ where: { user_id: userId } });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check for unique email
+        if (email && email !== user.email) {
+            const emailExists = await User.findOne({ where: { email } });
+            if (emailExists) {
+                return res.status(400).json({ message: 'Email already in use' });
+            }
+        }
+
+        // Update fields
+        if (username) user.username = username;
+        if (email) user.email = email;
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            user.password = hashedPassword;
+        }
+        if (small_description) user.small_description = small_description;
+        if (user_image) user.user_image = user_image;
+        if (user_wallpaper) user.user_wallpaper = user_wallpaper;
+        if (favorite_albums) {
+            if (Array.isArray(favorite_albums) && favorite_albums.length <= 5) {
+                user.favorite_albums = favorite_albums;
+            } else {
+                return res.status(400).json({ message: 'Favorite albums must be an array of up to 5 items.' });
+            }
+        }
+
+        await user.save();
+
+        return res.status(200).json({
+            message: 'User updated successfully',
+            user
+        });
+    } catch (error) {
+        return res.status(500).json({ message: 'Error updating user', error });
+    }
+};
