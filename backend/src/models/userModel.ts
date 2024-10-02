@@ -11,6 +11,7 @@ interface UserAttributes {
     email: string;
     password?: string;
     is_spotify_account: boolean;
+    spotify_id?: string | null; // Added field for Spotify user ID
     small_description?: string | null;
     user_image?: string | null;
     user_wallpaper?: string | null;
@@ -27,6 +28,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
     public email!: string;
     public password?: string;
     public is_spotify_account!: boolean;
+    public spotify_id?: string | null; // Spotify ID field
     public small_description?: string | null;
     public user_image?: string | null;
     public user_wallpaper?: string | null;
@@ -44,34 +46,39 @@ User.init(
         },
         username: {
             type: DataTypes.STRING,
-            allowNull: true,  // Initially null for Spotify users
+            allowNull: true,  // Initially null for Spotify users who haven't set a username yet
         },
         email: {
             type: DataTypes.STRING,
             allowNull: false,
-            unique: true,
+            unique: true,  // Ensure unique email
         },
         password: {
-            type: DataTypes.STRING,  // Nullable for Spotify users
+            type: DataTypes.STRING,  // Password is nullable for Spotify users
+            allowNull: true, // We allow null for Spotify users who don't use passwords
         },
         is_spotify_account: {
             type: DataTypes.BOOLEAN,
-            allowNull: false,
+            allowNull: false,  // Flag to indicate if the user was created with Spotify
+        },
+        spotify_id: {
+            type: DataTypes.STRING,  // New field for Spotify's user ID
+            allowNull: true,  // Nullable as non-Spotify users won't have it
         },
         small_description: {
-            type: DataTypes.STRING,  // Short user bio/description
-            allowNull: true,
+            type: DataTypes.STRING,
+            allowNull: true,  // Short bio/description
         },
         user_image: {
-            type: DataTypes.STRING,  // URL or path to user profile image
+            type: DataTypes.STRING,  // URL or path to the user's profile image
             allowNull: true,
         },
         user_wallpaper: {
-            type: DataTypes.STRING,  // URL or path to user wallpaper
+            type: DataTypes.STRING,  // URL or path to user's wallpaper
             allowNull: true,
         },
         favorite_albums: {
-            type: DataTypes.ARRAY(DataTypes.STRING),  // Array to store Spotify album IDs or names
+            type: DataTypes.ARRAY(DataTypes.STRING),  // Array for Spotify album IDs or names
             allowNull: true,
             validate: {
                 len: [0, 5],  // Limit to 5 favorite albums
@@ -89,7 +96,7 @@ User.init(
     {
         sequelize,
         tableName: 'users',
-        timestamps: false,  // Sequelize will manage created_at and updated_at
+        timestamps: false,  // Sequelize will not auto-manage timestamps
     }
 );
 

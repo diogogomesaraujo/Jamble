@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
           textStyle: GoogleFonts.poppins(), // Use Poppins font globally
         ),
       ),
-      home: SignUpScreen(),
+      home: EditProfileScreen(),
     );
   }
 }
