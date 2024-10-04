@@ -1,15 +1,117 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // Define colors based on the provided palette
-const Color darkRed = Color(0xFF3E111B);   // 100% opacity
-const Color grey = Color(0xFFDDDDDD);      // 100% opacity
-const Color peach = Color(0xFFFEA57D);     // 100% opacity
-const Color white100 = Color(0xFFFFFFFF);  // 100% opacity
+const Color darkRed = Color(0xFF3E111B);
+const Color grey = Color(0xFFDDDDDD);
+const Color peach = Color(0xFFFEA57D);
+const Color white100 = Color(0xFFFFFFFF);
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+class LoginScreen extends StatefulWidget {
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  TextEditingController _emailOrUsernameController = TextEditingController();
+  TextEditingController _passwordController = TextEditingController();
+  bool isLoading = false;
+  String errorMessage = '';
+
+  Future<String> getBackendUrl() async {
+    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+
+    if (Platform.isAndroid) {
+      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+      if (!androidInfo.isPhysicalDevice) {
+        return 'http://10.0.2.2:3000'; // Android emulator
+      } else {
+        return 'http://your-local-ip:3000'; // Android physical device
+      }
+    } else if (Platform.isIOS) {
+      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+      if (!iosInfo.isPhysicalDevice) {
+        return 'http://localhost:3000'; // iOS simulator
+      } else {
+        return 'http://your-local-ip:3000'; // iOS physical device
+      }
+    } else {
+      return 'http://your-local-ip:3000'; // Fallback for unknown platforms
+    }
+  }
+
+  Future<void> _loginUser() async {
+    String emailOrUsername = _emailOrUsernameController.text;
+    String password = _passwordController.text;
+
+    if (emailOrUsername.isEmpty || password.isEmpty) {
+      setState(() {
+        errorMessage = 'Please fill all fields';
+      });
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+      errorMessage = '';
+    });
+
+    try {
+      final backendUrl = await getBackendUrl();
+      var response = await http.post(
+        Uri.parse('$backendUrl/api/users/login'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'emailOrUsername': emailOrUsername,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          isLoading = false;
+        });
+        // Handle successful login (e.g., navigate to home screen or store token)
+      } else {
+        setState(() {
+          errorMessage = 'Login failed: ${response.body}';
+          isLoading = false;
+        });
+      }
+    } on SocketException {
+      setState(() {
+        errorMessage = 'Network error. Please try again.';
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'An error occurred: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loginWithSpotify() async {
+    final backendUrl = await getBackendUrl();
+    final spotifyAuthUrl = '$backendUrl/api/auth/spotify';
+
+    if (await canLaunchUrl(Uri.parse(spotifyAuthUrl))) {
+      await launchUrl(Uri.parse(spotifyAuthUrl),
+          mode: LaunchMode.externalApplication);
+    } else {
+      setState(() {
+        errorMessage = 'Could not launch Spotify login.';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,16 +130,16 @@ class LoginScreen extends StatelessWidget {
                   children: [
                     SvgPicture.asset(
                       'assets/flower.svg',
-                      height: 50,  // Image size matches the provided design
+                      height: 50,
                       width: 50,
                     ),
                     const SizedBox(height: 8),
                     const Text(
                       "Hello again!",
                       style: TextStyle(
-                        fontFamily: 'Poppins',  // Ensure Poppins is used
-                        fontWeight: FontWeight.w700,  // Bold weight for Poppins
-                        fontSize: 28,  // Matches design
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 28,
                         color: darkRed,
                       ),
                     ),
@@ -46,145 +148,108 @@ class LoginScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              // Subtitle
               Text(
                 "The best way to get the most out of our app is to participate actively.",
                 style: TextStyle(
                   fontSize: 14,
-                  fontFamily: 'Poppins',  // Ensure the font is consistent
-                  color: darkRed.withOpacity(0.6),  // Using dark red at 60% opacity
+                  fontFamily: 'Poppins',
+                  color: darkRed.withOpacity(0.6),
                 ),
               ),
               const SizedBox(height: 30),
-              
+
               // Username or Email field
               const Text(
                 "Username or Email",
                 style: TextStyle(
-                  fontFamily: 'Poppins',  // Ensure the font is consistent
+                  fontFamily: 'Poppins',
                   fontWeight: FontWeight.bold,
-                  color: darkRed,  // Using dark red
+                  color: darkRed,
                 ),
               ),
               CupertinoTextField(
+                controller: _emailOrUsernameController,
                 placeholder: "Sample@domain.com",
                 padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
                 placeholderStyle: TextStyle(
                   color: darkRed.withOpacity(0.5),
                 ),
-                style: const TextStyle(color: darkRed),  // Corrected input text color to dark red
+                style: const TextStyle(color: darkRed),
                 decoration: BoxDecoration(
-                  border: Border.all(color: grey),  // Using grey for border
+                  border: Border.all(color: grey),
                   borderRadius: BorderRadius.circular(5),
                 ),
               ),
               const SizedBox(height: 20),
-              
+
               // Password field
               const Text(
                 "Password",
                 style: TextStyle(
                   fontFamily: 'Poppins',
                   fontWeight: FontWeight.bold,
-                  color: darkRed,  // Using dark red
+                  color: darkRed,
                 ),
               ),
               CupertinoTextField(
+                controller: _passwordController,
                 placeholder: "Password",
                 obscureText: true,
                 padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
                 placeholderStyle: TextStyle(
                   color: darkRed.withOpacity(0.5),
                 ),
-                style: const TextStyle(color: darkRed),  // Corrected input text color to dark red
+                style: const TextStyle(color: darkRed),
                 decoration: BoxDecoration(
-                  border: Border.all(color: grey),  // Using grey for border
+                  border: Border.all(color: grey),
                   borderRadius: BorderRadius.circular(5),
-                ),
-              ),
-
-              const SizedBox(height: 5),
-              
-              // Recover Password
-              Align(
-                alignment: Alignment.centerRight,
-                child: GestureDetector(
-                  onTap: () {
-                    // Handle password recovery
-                  },
-                  child: Text(
-                    "Recover password",
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal,
-                      color: darkRed.withOpacity(0.6),
-                    ),
-                  ),
                 ),
               ),
               const SizedBox(height: 30),
 
-              // Login Button
-              Center(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: peach,  // Button background color
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: peach.withOpacity(0.8), // Increase peach shadow intensity
-                        blurRadius: 15,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: CupertinoButton(
-                    onPressed: () {},
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    color: null,  // Adjusted thickness to be thinner
-                    child: const Text(
-                      "Login",
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        color: white100,  // White text color
-                        fontSize: 14, // Adjusted to match text size
-                        fontWeight: FontWeight.normal,
-                      ),
-                    ),  // Transparent button background
+              // Error message
+              if (errorMessage.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    errorMessage,
+                    style: TextStyle(
+                      color: CupertinoColors.systemRed,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
 
-              // Custom Divider with 'or'
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 1.0,  // Thicker divider
-                      color: darkRed.withOpacity(0.2),  // Dark red with 20% opacity
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(
-                      "or",
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        color: darkRed,  // Make "or" dark red
-                        fontWeight: FontWeight.bold,  // Bold for "or"
+              // Login Button
+              Center(
+                child: isLoading
+                    ? CupertinoActivityIndicator()
+                    : Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: peach,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: peach.withOpacity(0.8),
+                              blurRadius: 15,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: CupertinoButton(
+                          onPressed: _loginUser,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: const Text(
+                            "Login",
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              color: white100,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      height: 1.0,  // Thicker divider
-                      color: darkRed.withOpacity(0.2),  // Dark red with 20% opacity
-                    ),
-                  ),
-                ],
               ),
               const SizedBox(height: 20),
 
@@ -193,20 +258,19 @@ class LoginScreen extends StatelessWidget {
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: white100,  // White background for the button
+                    color: white100,
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: grey.withOpacity(0.7),  // Increased shadow intensity
+                        color: grey.withOpacity(0.7),
                         blurRadius: 15,
                         offset: const Offset(0, 6),
                       ),
                     ],
                   ),
                   child: CupertinoButton(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 50), // Adjusted padding for thin button
-                    onPressed: () {},
-                    color: null,
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 50),
+                    onPressed: _loginWithSpotify, // Handle Spotify login here
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -216,37 +280,8 @@ class LoginScreen extends StatelessWidget {
                           "Continue with Spotify",
                           style: TextStyle(
                             fontFamily: 'Poppins',
-                            color: darkRed,  // Using dark red for text
-                            fontSize: 14, // Matching text size
-                          ),
-                        ),
-                      ],
-                    ),  // Button is transparent to show custom white container
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              // Sign up text
-              Center(
-                child: GestureDetector(
-                  onTap: () {
-                    // Sign up action
-                  },
-                  child: RichText(
-                    text: TextSpan(
-                      text: "You don’t have an account yet? ",
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        color: darkRed.withOpacity(0.6),  // Using dark red at 60% opacity
-                      ),
-                      children: const [
-                        TextSpan(
-                          text: "Sign up!",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            color: darkRed,  // Bold dark red for 'Sign up!'
-                            fontWeight: FontWeight.bold,
+                            color: darkRed,
+                            fontSize: 14,
                           ),
                         ),
                       ],
@@ -254,6 +289,7 @@ class LoginScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 30),
             ],
           ),
         ),
