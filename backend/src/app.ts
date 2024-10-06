@@ -17,10 +17,14 @@ app.use(express.json());
 // Configure express-session
 app.use(
     session({
-        secret: process.env.SESSION_SECRET || 'your_secret_key',  // Use a secure session secret
+        secret: process.env.SESSION_SECRET || 'your_secret_key',  // Use a secure session secret from env
         resave: false,
         saveUninitialized: true,
-        cookie: { secure: false },  // Set to true in production if using HTTPS
+        cookie: { 
+            secure: process.env.NODE_ENV === 'production',  // Set to true in production if using HTTPS
+            httpOnly: true,  // Ensure the cookie is only accessible by the web server
+            maxAge: 24 * 60 * 60 * 1000  // Session expires after 24 hours
+        },
     })
 );
 

@@ -6,6 +6,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/services.dart';
 
 // Define colors based on the provided palette
 const Color darkRed = Color(0xFF3E111B);
@@ -19,24 +20,107 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  TextEditingController _usernameController = TextEditingController();
-  TextEditingController _emailController = TextEditingController();
-  TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool isLoading = false;
   String errorMessage = '';
 
+  // Define the MethodChannel to receive URL from AppDelegate
+  static const MethodChannel _channel = MethodChannel('app_links');
+
+  @override
+  void initState() {
+    super.initState();
+    _listenForAppLinks();
+  }
+
+  // Listen for incoming app links
+  void _listenForAppLinks() {
+    _channel.setMethodCallHandler((MethodCall call) async {
+      if (call.method == "getAppLink") {
+        final String url = call.arguments;
+        _processAuthCode(Uri.parse(url));
+      }
+    });
+  }
+
+  // Function to process the auth code from Spotify callback URL
+  void _processAuthCode(Uri uri) {
+    final String? code = uri.queryParameters['code'];
+    if (code != null) {
+      _exchangeCodeForToken(code);
+    } else {
+      setState(() {
+        errorMessage = 'Spotify login failed: No code in callback.';
+      });
+    }
+  }
+
+  // Function to exchange the auth code for access token
+  Future<void> _exchangeCodeForToken(String code) async {
+    setState(() {
+      isLoading = true;
+      errorMessage = '';
+    });
+
+    final backendUrl = await getBackendUrl(); // Your server URL
+    final tokenUrl = '$backendUrl/api/auth/spotify/callback';
+
+    try {
+      final response = await http.post(
+        Uri.parse(tokenUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'code': code}),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          isLoading = false;
+          errorMessage = 'Spotify login successful!';
+        });
+        // Handle successful Spotify login (e.g., saving token)
+      } else {
+        setState(() {
+          errorMessage = 'Spotify login failed: ${response.body}';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'An error occurred: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  // Function to launch Spotify login
+  Future<void> _loginWithSpotify() async {
+    final backendUrl = await getBackendUrl();
+    final spotifyAuthUrl = '$backendUrl/api/auth/spotify';
+
+    if (await canLaunchUrl(Uri.parse(spotifyAuthUrl))) {
+      await launchUrl(Uri.parse(spotifyAuthUrl), mode: LaunchMode.externalApplication);
+    } else {
+      setState(() {
+        errorMessage = 'Could not launch Spotify login.';
+      });
+    }
+  }
+
+  // Function to get the backend URL based on the platform (local or production)
   Future<String> getBackendUrl() async {
-    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
 
     if (Platform.isAndroid) {
-      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+      final AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
       if (!androidInfo.isPhysicalDevice) {
         return 'http://10.0.2.2:3000'; // Android emulator
       } else {
         return 'http://your-local-ip:3000'; // Android physical device
       }
     } else if (Platform.isIOS) {
-      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+      final IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
       if (!iosInfo.isPhysicalDevice) {
         return 'http://localhost:3000'; // iOS simulator
       } else {
@@ -47,25 +131,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  // Function to launch Spotify login using URL Launcher
-  Future<void> _loginWithSpotify() async {
-    final backendUrl = await getBackendUrl();
-    final spotifyAuthUrl = '$backendUrl/api/auth/spotify';
-
-    if (await canLaunchUrl(Uri.parse(spotifyAuthUrl))) {
-      await launchUrl(Uri.parse(spotifyAuthUrl),
-          mode: LaunchMode.externalApplication);
-    } else {
-      setState(() {
-        errorMessage = 'Could not launch Spotify login.';
-      });
-    }
-  }
-
   Future<void> _registerUser() async {
-    String username = _usernameController.text;
-    String email = _emailController.text;
-    String password = _passwordController.text;
+    final String username = _usernameController.text;
+    final String email = _emailController.text;
+    final String password = _passwordController.text;
 
     if (username.isEmpty || email.isEmpty || password.isEmpty) {
       setState(() {
@@ -81,7 +150,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     try {
       final backendUrl = await getBackendUrl();
-      var response = await http.post(
+      final response = await http.post(
         Uri.parse('$backendUrl/api/users/register'),
         headers: {
           'Content-Type': 'application/json',
@@ -118,13 +187,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       child: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 30.0), // Increased padding from 20 to 30
+          padding: const EdgeInsets.symmetric(horizontal: 30.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
