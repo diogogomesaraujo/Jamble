@@ -27,11 +27,11 @@ router.get(
       return res.status(400).json({ message: 'Spotify login failed', error: 'User or token missing from response' });
     }
 
-    res.json({
-      message: 'Spotify login successful',
-      token: user.token,
-      user: user.user,
-    });
+    // Construct a redirect URL with the token and user info
+    const redirectUrl = `myapp://callback?token=${user.token}&email=${user.user.email}`;
+
+    // Redirect the user back to the app
+    res.redirect(redirectUrl);
   }
 );
 

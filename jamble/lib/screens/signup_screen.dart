@@ -1,14 +1,15 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:frontend/screens/blank.dart';
 import 'package:http/http.dart' as http;
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:uni_links/uni_links.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart';
 
-// Define colors based on the provided palette
 const Color darkRed = Color(0xFF3E111B);
 const Color grey = Color(0xFFDDDDDD);
 const Color peach = Color(0xFFFEA57D);
@@ -26,109 +27,138 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool isLoading = false;
   String errorMessage = '';
 
-  // Define the MethodChannel to receive URL from AppDelegate
-  static const MethodChannel _channel = MethodChannel('app_links');
+  final FlutterSecureStorage secureStorage = FlutterSecureStorage();
 
   @override
   void initState() {
     super.initState();
-    _listenForAppLinks();
+    _checkInitialDeepLink();
+    _listenForDeepLinks();
+    _checkExistingToken();
   }
 
-  // Listen for incoming app links
-  void _listenForAppLinks() {
-    _channel.setMethodCallHandler((MethodCall call) async {
-      if (call.method == "getAppLink") {
-        final String url = call.arguments;
-        _processAuthCode(Uri.parse(url));
+  Future<void> _checkExistingToken() async {
+    final token = await secureStorage.read(key: 'spotify_token');
+    if (token != null) {
+      Navigator.pushReplacementNamed(context, '/home');
+    }
+  }
+
+  Future<void> _checkInitialDeepLink() async {
+    try {
+      final initialLink = await getInitialLink();
+      if (initialLink != null) {
+        debugPrint("Initial deep link received: $initialLink");
+        _handleDeepLink(initialLink);
+      } else {
+        debugPrint("No initial deep link found.");
       }
-    });
-  }
-
-  // Function to process the auth code from Spotify callback URL
-  void _processAuthCode(Uri uri) {
-    final String? code = uri.queryParameters['code'];
-    if (code != null) {
-      _exchangeCodeForToken(code);
-    } else {
+    } on PlatformException {
       setState(() {
-        errorMessage = 'Spotify login failed: No code in callback.';
+        errorMessage = 'Failed to get initial link';
+        debugPrint(errorMessage);
       });
     }
   }
 
-  // Function to exchange the auth code for access token
-  Future<void> _exchangeCodeForToken(String code) async {
+  void _listenForDeepLinks() {
+  linkStream.listen((String? link) {
+    if (link != null) {
+      debugPrint("Incoming deep link received: $link");
+      _handleDeepLink(link);  // Process the deep link
+    } else {
+      debugPrint("No deep link received.");
+    }
+  }, onError: (err) {
     setState(() {
-      isLoading = true;
-      errorMessage = '';
+      errorMessage = 'Error receiving deep link: $err';
+      debugPrint(errorMessage);
     });
+  });
+}
 
-    final backendUrl = await getBackendUrl(); // Your server URL
-    final tokenUrl = '$backendUrl/api/auth/spotify/callback';
+  void _handleDeepLink(String url) async {
+  final Uri uri = Uri.parse(url);
+
+  if (uri.scheme == 'myapp' && uri.host == 'callback') {
+    final String? token = uri.queryParameters['token'];  // Extract token
+    final String? email = uri.queryParameters['email'];
+
+    if (token != null && email != null) {
+      await secureStorage.write(key: 'spotify_token', value: token);  // Store the token securely
+      print("Token stored: $token");  // Add this log to confirm token storage
+
+      // Navigate to the blank screen or the desired screen
+      Navigator.pushReplacement(
+        context,
+        CupertinoPageRoute(builder: (context) => BlankScreen()),
+      );
+    } else {
+      setState(() {
+        errorMessage = 'Login failed: Missing token or email.';
+      });
+    }
+  } else {
+    debugPrint("Unexpected deep link: $url");
+  }
+}
+
+  Future<void> _sendTokenToBackend(String accessToken) async {
+    final backendUrl = await getBackendUrl();
+    final callbackUrl = '$backendUrl/api/auth/spotify/callback';
 
     try {
       final response = await http.post(
-        Uri.parse(tokenUrl),
+        Uri.parse(callbackUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'code': code}),
-      );
+        body: jsonEncode({'access_token': accessToken}),
+      ).timeout(const Duration(seconds: 2));
 
-      if (response.statusCode == 200) {
-        setState(() {
-          isLoading = false;
-          errorMessage = 'Spotify login successful!';
-        });
-        // Handle successful Spotify login (e.g., saving token)
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint("Successfully synced with backend.");
       } else {
+        debugPrint("Failed to sync with backend: ${response.body}");
+        // Handle backend error response
         setState(() {
-          errorMessage = 'Spotify login failed: ${response.body}';
-          isLoading = false;
+          errorMessage = 'Backend error: ${response.body}';
         });
       }
     } catch (e) {
+      debugPrint("Error syncing with backend: $e");
       setState(() {
-        errorMessage = 'An error occurred: $e';
-        isLoading = false;
+        errorMessage = 'Error syncing with backend: $e';
       });
     }
   }
 
-  // Function to launch Spotify login
   Future<void> _loginWithSpotify() async {
     final backendUrl = await getBackendUrl();
     final spotifyAuthUrl = '$backendUrl/api/auth/spotify';
 
-    if (await canLaunchUrl(Uri.parse(spotifyAuthUrl))) {
-      await launchUrl(Uri.parse(spotifyAuthUrl), mode: LaunchMode.externalApplication);
-    } else {
+    try {
+      if (await canLaunchUrl(Uri.parse(spotifyAuthUrl))) {
+        debugPrint("Launching Spotify auth URL: $spotifyAuthUrl");
+        await launchUrl(Uri.parse(spotifyAuthUrl),
+            mode: LaunchMode.externalApplication);
+      } else {
+        setState(() {
+          errorMessage = 'Could not launch Spotify login.';
+          debugPrint(errorMessage);
+        });
+      }
+    } catch (e) {
       setState(() {
-        errorMessage = 'Could not launch Spotify login.';
+        errorMessage = 'Error launching Spotify login: $e';
+        debugPrint(errorMessage);
       });
     }
   }
 
-  // Function to get the backend URL based on the platform (local or production)
   Future<String> getBackendUrl() async {
-    final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-
-    if (Platform.isAndroid) {
-      final AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-      if (!androidInfo.isPhysicalDevice) {
-        return 'http://10.0.2.2:3000'; // Android emulator
-      } else {
-        return 'http://your-local-ip:3000'; // Android physical device
-      }
-    } else if (Platform.isIOS) {
-      final IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-      if (!iosInfo.isPhysicalDevice) {
-        return 'http://localhost:3000'; // iOS simulator
-      } else {
-        return 'http://your-local-ip:3000'; // iOS physical device
-      }
-    } else {
-      return 'http://your-local-ip:3000'; // Fallback for unknown platforms
-    }
+    // Ensure you update the ngrok URL regularly if you're using a free plan
+    const backendUrl = 'http://172.20.10.7:3000';  // Ensure this is always updated
+    debugPrint("Using backend URL: $backendUrl");
+    return backendUrl;
   }
 
   Future<void> _registerUser() async {
@@ -139,6 +169,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (username.isEmpty || email.isEmpty || password.isEmpty) {
       setState(() {
         errorMessage = 'Please fill all fields';
+        debugPrint(errorMessage);
       });
       return;
     }
@@ -152,36 +183,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final backendUrl = await getBackendUrl();
       final response = await http.post(
         Uri.parse('$backendUrl/api/users/register'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'username': username,
-          'email': email,
-          'password': password,
-        }),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(
+            {'username': username, 'email': email, 'password': password}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         setState(() {
           isLoading = false;
         });
-        // Handle successful registration
+        debugPrint("User registration successful, navigating to home.");
+        Navigator.pushReplacementNamed(context, '/home');
       } else {
         setState(() {
           errorMessage = 'Registration failed: ${response.body}';
           isLoading = false;
+          debugPrint(errorMessage);
         });
       }
     } on SocketException {
       setState(() {
         errorMessage = 'Network error. Please try again.';
         isLoading = false;
+        debugPrint(errorMessage);
       });
     } catch (e) {
       setState(() {
         errorMessage = 'An error occurred: $e';
         isLoading = false;
+        debugPrint(errorMessage);
       });
     }
   }
@@ -228,80 +258,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               SizedBox(height: 30),
-
-              // Username field
-              Text(
-                "Username",
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.bold,
-                  color: darkRed,
-                ),
-              ),
-              CupertinoTextField(
-                controller: _usernameController,
-                placeholder: "samplename",
-                padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-                placeholderStyle: TextStyle(
-                  color: darkRed.withOpacity(0.5),
-                ),
-                style: TextStyle(color: darkRed),
-                decoration: BoxDecoration(
-                  border: Border.all(color: grey),
-                  borderRadius: BorderRadius.circular(5),
-                ),
-              ),
+              _buildTextField("Username", _usernameController),
               SizedBox(height: 20),
-
-              // Email field
-              Text(
-                "Email Address",
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.bold,
-                  color: darkRed,
-                ),
-              ),
-              CupertinoTextField(
-                controller: _emailController,
-                placeholder: "Sample@domain.com",
-                padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-                placeholderStyle: TextStyle(
-                  color: darkRed.withOpacity(0.5),
-                ),
-                style: TextStyle(color: darkRed),
-                decoration: BoxDecoration(
-                  border: Border.all(color: grey),
-                  borderRadius: BorderRadius.circular(5),
-                ),
-              ),
+              _buildTextField("Email Address", _emailController),
               SizedBox(height: 20),
-
-              // Password field
-              Text(
-                "Password",
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.bold,
-                  color: darkRed,
-                ),
-              ),
-              CupertinoTextField(
-                controller: _passwordController,
-                placeholder: "Password",
-                obscureText: true,
-                padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-                placeholderStyle: TextStyle(
-                  color: darkRed.withOpacity(0.5),
-                ),
-                style: TextStyle(color: darkRed),
-                decoration: BoxDecoration(
-                  border: Border.all(color: grey),
-                  borderRadius: BorderRadius.circular(5),
-                ),
-              ),
+              _buildPasswordTextField("Password", _passwordController),
               SizedBox(height: 30),
-
               if (errorMessage.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -313,7 +275,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                 ),
-
               Center(
                 child: isLoading
                     ? CupertinoActivityIndicator()
@@ -347,99 +308,168 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
               ),
               SizedBox(height: 20),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 1.0,
-                      color: darkRed.withOpacity(0.2),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(
-                      "or",
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        color: darkRed,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      height: 1.0,
-                      color: darkRed.withOpacity(0.2),
-                    ),
-                  ),
-                ],
-              ),
+              _buildDividerWithText(),
               SizedBox(height: 20),
+              _buildSpotifyLoginButton(),
+              SizedBox(height: 30),
+              _buildAlreadyHaveAccount(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-              Center(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: white100,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: grey.withOpacity(0.7),
-                        blurRadius: 15,
-                        offset: Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: CupertinoButton(
-                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 50),
-                    onPressed: _loginWithSpotify,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FaIcon(FontAwesomeIcons.spotify,
-                            color: CupertinoColors.activeGreen),
-                        SizedBox(width: 10),
-                        Text(
-                          "Continue with Spotify",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            color: darkRed,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                    color: null,
-                  ),
+  Widget _buildTextField(String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+            color: darkRed,
+          ),
+        ),
+        CupertinoTextField(
+          controller: controller,
+          placeholder: "Enter $label",
+          padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+          placeholderStyle: TextStyle(
+            color: darkRed.withOpacity(0.5),
+          ),
+          style: TextStyle(color: darkRed),
+          decoration: BoxDecoration(
+            border: Border.all(color: grey),
+            borderRadius: BorderRadius.circular(5),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordTextField(
+      String label, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+            color: darkRed,
+          ),
+        ),
+        CupertinoTextField(
+          controller: controller,
+          placeholder: label,
+          obscureText: true,
+          padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+          placeholderStyle: TextStyle(
+            color: darkRed.withOpacity(0.5),
+          ),
+          style: TextStyle(color: darkRed),
+          decoration: BoxDecoration(
+            border: Border.all(color: grey),
+            borderRadius: BorderRadius.circular(5),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDividerWithText() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 1.0,
+            color: darkRed.withOpacity(0.2),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Text(
+            "or",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              color: darkRed,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Container(
+            height: 1.0,
+            color: darkRed.withOpacity(0.2),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSpotifyLoginButton() {
+    return Center(
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: white100,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: grey.withOpacity(0.7),
+              blurRadius: 15,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: CupertinoButton(
+          padding: EdgeInsets.symmetric(vertical: 12, horizontal: 50),
+          onPressed: _loginWithSpotify,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FaIcon(FontAwesomeIcons.spotify,
+                  color: CupertinoColors.activeGreen),
+              SizedBox(width: 10),
+              Text(
+                "Continue with Spotify",
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: darkRed,
+                  fontSize: 14,
                 ),
               ),
-              SizedBox(height: 30),
+            ],
+          ),
+          color: null,
+        ),
+      ),
+    );
+  }
 
-              Center(
-                child: GestureDetector(
-                  onTap: () {
-                    // Handle sign-in navigation
-                  },
-                  child: RichText(
-                    text: TextSpan(
-                      text: "You don’t have an account yet? ",
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        color: darkRed.withOpacity(0.6),
-                      ),
-                      children: [
-                        TextSpan(
-                          text: "Sign up!",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            color: darkRed,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+  Widget _buildAlreadyHaveAccount() {
+    return Center(
+      child: GestureDetector(
+        onTap: () {
+          // Handle sign-in navigation
+        },
+        child: RichText(
+          text: TextSpan(
+            text: "Already have an account? ",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              color: darkRed.withOpacity(0.6),
+            ),
+            children: [
+              TextSpan(
+                text: "Sign in!",
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  color: darkRed,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
