@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:frontend/screens/blank.dart';
 import 'package:frontend/screens/edit_profile_screen.dart';
 import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/screens/signup_screen.dart';
@@ -23,7 +24,14 @@ class MyApp extends StatelessWidget {
           textStyle: GoogleFonts.poppins(), // Use Poppins font globally
         ),
       ),
-      home: SignUpScreen(),
+      initialRoute: '/signup', // Set the initial route
+      routes: {
+        '/signup': (context) => SignUpScreen(), // Sign-up screen
+        '/login': (context) => LoginScreen(),   // Login screen
+        '/edit-profile': (context) => EditProfileScreen(), // Edit profile screen
+        '/': (context) => BlankScreen(), // Home screen
+        // Add more routes as needed
+      },
     );
   }
 }
