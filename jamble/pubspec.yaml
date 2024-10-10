@@ -47,6 +47,8 @@ dependencies:
   oauth2: ^2.0.0
   crypto: ^3.0.5
   flutter_web_auth_2: ^4.0.0
+  flutter_inappwebview: ^6.1.4
+  flutter_custom_tabs: ^2.1.0
 
 
   

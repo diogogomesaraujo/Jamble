@@ -6,9 +6,10 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uni_links/uni_links.dart';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart';
+import 'dart:io';
 
 const Color darkRed = Color(0xFF3E111B);
 const Color grey = Color(0xFFDDDDDD);
@@ -20,7 +21,7 @@ class SignUpScreen extends StatefulWidget {
   _SignUpScreenState createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
+class _SignUpScreenState extends State<SignUpScreen> with WidgetsBindingObserver {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -28,81 +29,124 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String errorMessage = '';
 
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
+  StreamSubscription? _linkSubscription;
 
   @override
   void initState() {
     super.initState();
-    _checkInitialDeepLink();
-    _listenForDeepLinks();
-    _checkExistingToken();
+    WidgetsBinding.instance.addObserver(this);
+    _initPlatformSpecificDeepLinkHandler(); // Initialize platform-specific deep link handler
+    _initDeepLinkHandlers(); // Start listening for deep links
+    _checkExistingToken(); // Check if a token exists
   }
 
-  Future<void> _checkExistingToken() async {
-    final token = await secureStorage.read(key: 'spotify_token');
-    if (token != null) {
-      Navigator.pushReplacementNamed(context, '/home');
+  @override
+  void dispose() {
+    _linkSubscription?.cancel(); // Cancel the deep link subscription
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint("App resumed, checking for deep links.");
+      _initUriHandler(); // Recheck for deep links when app resumes
     }
   }
 
-  Future<void> _checkInitialDeepLink() async {
-    try {
-      final initialLink = await getInitialLink();
-      if (initialLink != null) {
-        debugPrint("Initial deep link received: $initialLink");
-        _handleDeepLink(initialLink);
-      } else {
-        debugPrint("No initial deep link found.");
-      }
-    } on PlatformException {
-      setState(() {
-        errorMessage = 'Failed to get initial link';
-        debugPrint(errorMessage);
-      });
-    }
-  }
+  void _initPlatformSpecificDeepLinkHandler() {
+  const MethodChannel _channel = MethodChannel('uni_links/messages');
 
-  void _listenForDeepLinks() {
-  linkStream.listen((String? link) {
-    if (link != null) {
-      debugPrint("Incoming deep link received: $link");
-      _handleDeepLink(link);  // Process the deep link
+  _channel.setMethodCallHandler((MethodCall call) async {
+    if (call.method == 'onDeepLinkReceived') {
+      final String deepLink = call.arguments;
+      debugPrint("Deep link received from native code: $deepLink");
+      _handleDeepLink(deepLink);
     } else {
-      debugPrint("No deep link received.");
+      debugPrint("Unknown method called from native: ${call.method}");
     }
-  }, onError: (err) {
-    setState(() {
-      errorMessage = 'Error receiving deep link: $err';
-      debugPrint(errorMessage);
-    });
   });
 }
 
-  void _handleDeepLink(String url) async {
-  final Uri uri = Uri.parse(url);
+  // Initialize deep link handlers
+  void _initDeepLinkHandlers() {
+    debugPrint("Initializing deep link handlers");
 
-  if (uri.scheme == 'myapp' && uri.host == 'callback') {
-    final String? token = uri.queryParameters['token'];  // Extract token
-    final String? email = uri.queryParameters['email'];
+    _initUriHandler().then((_) {
+      debugPrint("Initial URI handler initialized");
+    }).catchError((error) {
+      debugPrint("Failed to initialize initial URI handler: $error");
+    });
 
-    if (token != null && email != null) {
-      await secureStorage.write(key: 'spotify_token', value: token);  // Store the token securely
-      print("Token stored: $token");  // Add this log to confirm token storage
-
-      // Navigate to the blank screen or the desired screen
-      Navigator.pushReplacement(
-        context,
-        CupertinoPageRoute(builder: (context) => BlankScreen()),
-      );
-    } else {
-      setState(() {
-        errorMessage = 'Login failed: Missing token or email.';
-      });
-    }
-  } else {
-    debugPrint("Unexpected deep link: $url");
+    _listenForDeepLinks();
   }
-}
 
+  /// Handle deep links on cold start or when the app resumes.
+  Future<void> _initUriHandler() async {
+    try {
+      final Uri? initialURI = await getInitialUri(); // Check for the initial URI
+      if (initialURI != null) {
+        _handleDeepLink(initialURI.toString());
+      }
+    } catch (e) {
+      debugPrint('Failed to receive initial URI: $e');
+    }
+  }
+
+  /// Listen for real-time deep links during the app’s lifecycle.
+  void _listenForDeepLinks() {
+    if (_linkSubscription == null) {
+      _linkSubscription = uriLinkStream.listen((Uri? link) {
+        if (link != null) {
+          debugPrint("Incoming deep link received: $link");
+          _handleDeepLink(link.toString());
+        }
+      }, onError: (err) {
+        setState(() {
+          errorMessage = 'Error receiving deep link: $err';
+          debugPrint("Error in deep link stream: $err");
+        });
+      }, cancelOnError: true); // Automatically cancels on error
+    }
+  }
+
+  /// Handle the deep link, extract token, and navigate accordingly.
+  void _handleDeepLink(String url) async {
+    debugPrint("Handling deep link: $url");
+    final Uri uri = Uri.parse(url);
+
+    if (uri.scheme == 'myapp' && uri.host == 'callback') {
+      final String? token = uri.queryParameters['token'];
+
+      if (token != null) {
+        debugPrint("Token found: $token");
+
+        await secureStorage.write(key: 'spotify_token', value: token).then((_) {
+          debugPrint("Token successfully stored: $token");
+          _sendTokenToBackend(token);
+          Navigator.pushReplacement(
+            context,
+            CupertinoPageRoute(builder: (context) => BlankScreen()),
+          );
+        }).catchError((error) {
+          setState(() {
+            errorMessage = 'Failed to store token: $error';
+            debugPrint(errorMessage);
+          });
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Login failed: Missing token.';
+          debugPrint("Login failed: Missing token.");
+        });
+      }
+    } else {
+      debugPrint("Unexpected deep link: $url");
+    }
+  }
+
+  /// Send the token to the backend to complete the authentication process.
   Future<void> _sendTokenToBackend(String accessToken) async {
     final backendUrl = await getBackendUrl();
     final callbackUrl = '$backendUrl/api/auth/spotify/callback';
@@ -112,13 +156,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
         Uri.parse(callbackUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'access_token': accessToken}),
-      ).timeout(const Duration(seconds: 2));
+      ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         debugPrint("Successfully synced with backend.");
       } else {
         debugPrint("Failed to sync with backend: ${response.body}");
-        // Handle backend error response
         setState(() {
           errorMessage = 'Backend error: ${response.body}';
         });
@@ -131,15 +174,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  /// Check if a Spotify token already exists in secure storage.
+  Future<void> _checkExistingToken() async {
+    try {
+      final token = await secureStorage.read(key: 'spotify_token');
+      if (token != null) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Error checking token: $e';
+        debugPrint(errorMessage);
+      });
+    }
+  }
+
+  /// Initiate the Spotify login flow by launching the Spotify OAuth URL.
   Future<void> _loginWithSpotify() async {
     final backendUrl = await getBackendUrl();
     final spotifyAuthUrl = '$backendUrl/api/auth/spotify';
 
     try {
-      if (await canLaunchUrl(Uri.parse(spotifyAuthUrl))) {
+      final uri = Uri.parse(spotifyAuthUrl);
+
+      if (await canLaunchUrl(uri)) {
         debugPrint("Launching Spotify auth URL: $spotifyAuthUrl");
-        await launchUrl(Uri.parse(spotifyAuthUrl),
-            mode: LaunchMode.externalApplication);
+
+        await launchUrl(uri, mode: LaunchMode.externalApplication).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            setState(() {
+              errorMessage = 'Spotify login timeout. Please try again.';
+            });
+            debugPrint("TimeoutException: Spotify login URL timeout");
+            throw TimeoutException("Spotify login URL timeout");
+          },
+        );
       } else {
         setState(() {
           errorMessage = 'Could not launch Spotify login.';
@@ -155,8 +225,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<String> getBackendUrl() async {
-    // Ensure you update the ngrok URL regularly if you're using a free plan
-    const backendUrl = 'http://172.20.10.7:3000';  // Ensure this is always updated
+    const backendUrl = 'http://127.0.0.1:3000'; // Ensure this is always updated
     debugPrint("Using backend URL: $backendUrl");
     return backendUrl;
   }
@@ -184,8 +253,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final response = await http.post(
         Uri.parse('$backendUrl/api/users/register'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(
-            {'username': username, 'email': email, 'password': password}),
+        body: jsonEncode({'username': username, 'email': email, 'password': password}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -349,8 +417,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _buildPasswordTextField(
-      String label, TextEditingController controller) {
+  Widget _buildPasswordTextField(String label, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

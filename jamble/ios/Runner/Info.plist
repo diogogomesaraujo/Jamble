@@ -62,6 +62,7 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>spotify</string>
+		<string>myapp</string>
 	</array>
 
 </dict>
