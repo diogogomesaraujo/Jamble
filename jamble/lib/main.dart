@@ -4,8 +4,15 @@ import 'package:frontend/screens/edit_profile_screen.dart';
 import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/screens/signup_screen.dart';
 import 'package:google_fonts/google_fonts.dart'; // Import Google Fonts for Poppins
+import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Import secure storage for token management
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure binding for async code in main
+  final FlutterSecureStorage secureStorage = FlutterSecureStorage();
+
+  // Delete any existing Spotify token on app initialization
+  await secureStorage.delete(key: 'spotify_token');
+
   runApp(const MyApp());
 }
 

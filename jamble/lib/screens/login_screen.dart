@@ -4,7 +4,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:frontend/services/spotify.dart'; // Import SpotifyService
 import 'package:frontend/services/login.dart'; // Import LoginService
 import 'dart:async';
-import 'dart:io';
 
 const Color darkRed = Color(0xFF3E111B);
 const Color grey = Color(0xFFDDDDDD);
@@ -32,7 +31,6 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _verifyTokenAndNavigate(); // Centralized token verification
-    _initSpotifyService();
   }
 
   @override
@@ -42,23 +40,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      spotifyService.initDeepLinkHandlers(_handleDeepLink);
-    }
-  }
-
-  void _initSpotifyService() {
-    spotifyService.initDeepLinkHandlers(_handleDeepLink);
-  }
-
-  void _handleDeepLink(String url) async {
-    await spotifyService.handleDeepLink(url, () {
-      _verifyTokenAndNavigate(); // Use centralized verification after handling deep link
-    });
-  }
-
+  // Centralized method for verifying the token and navigating to the main page
   Future<void> _verifyTokenAndNavigate() async {
     setState(() {
       isLoading = true;
@@ -74,14 +56,23 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     });
   }
 
+  // Navigation method to go to the main page
   void _navigateToMainPage() {
-    //Navigator.pushReplacementNamed(context, '/');
+    Navigator.pushReplacementNamed(context, '/edit-profile');
     print("Navigating to main page");
   }
 
+  // Traditional login method using email/username and password
   Future<void> _loginUser() async {
     String emailOrUsername = _emailOrUsernameController.text;
     String password = _passwordController.text;
+
+    if (emailOrUsername.isEmpty || password.isEmpty) {
+      setState(() {
+        errorMessage = 'Please fill all fields';
+      });
+      return;
+    }
 
     setState(() {
       isLoading = true;
@@ -92,12 +83,16 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       final result = await loginService.loginUser(emailOrUsername, password);
 
       if (result == null) {
-        _verifyTokenAndNavigate(); // Use the centralized method if login is successful
+        _verifyTokenAndNavigate(); // Use centralized method if login is successful
       } else {
         setState(() {
-          errorMessage = result; // Display the error message if login failed
+          errorMessage = result; // Display error message if login failed
         });
       }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Login failed: $e';
+      });
     } finally {
       setState(() {
         isLoading = false;
@@ -105,6 +100,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     }
   }
 
+  // Spotify login integration using OAuth
   Future<void> _loginWithSpotify() async {
     setState(() {
       isLoading = true;
@@ -113,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     });
     try {
       await spotifyService.loginWithSpotify();
-      _verifyTokenAndNavigate(); // Use the centralized method
+      _verifyTokenAndNavigate(); // Use centralized method
     } catch (e) {
       setState(() {
         errorMessage = 'Error launching Spotify login: $e';
@@ -276,7 +272,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       onTapDown: (_) => _onLoginButtonPressed(true),
       onTapUp: (_) => _onLoginButtonPressed(false),
       onTapCancel: () => _onLoginButtonPressed(false),
-      onTap: _loginUser,
+      onTap: _loginUser, // Login user when button is pressed
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
@@ -344,12 +340,14 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       onTapDown: (_) => _onSpotifyButtonPressed(true),
       onTapUp: (_) => _onSpotifyButtonPressed(false),
       onTapCancel: () => _onSpotifyButtonPressed(false),
-      onTap: _loginWithSpotify,
+      onTap: _loginWithSpotify, // Trigger Spotify login on button press
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
-          color: isSpotifyButtonPressed ? const Color.fromARGB(215, 255, 255, 255) : white100,
+          color: isSpotifyButtonPressed
+              ? const Color.fromARGB(215, 255, 255, 255)
+              : white100,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(

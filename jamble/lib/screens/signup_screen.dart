@@ -1,9 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:frontend/services/spotify.dart';
+import 'package:frontend/services/spotify.dart'; // Import SpotifyService
 import 'package:frontend/services/register.dart'; // Import RegisterService
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'dart:async';
 
 const Color darkRed = Color(0xFF3E111B);
 const Color grey = Color(0xFFDDDDDD);
@@ -15,52 +14,34 @@ class SignUpScreen extends StatefulWidget {
   _SignUpScreenState createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> with WidgetsBindingObserver {
+class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  
   bool isLoading = false;
   String errorMessage = '';
   bool isSignUpLoading = false;
   bool isSpotifyLoading = false;
   bool isSignUpButtonPressed = false;
   bool isSpotifyButtonPressed = false;
+  
   final SpotifyService spotifyService = SpotifyService();
   final RegisterService registerService = RegisterService();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _verifyTokenAndNavigate(); // Centralized token verification
-    _initSpotifyService();
+    _verifyTokenAndNavigate(); // Check for existing Spotify token and navigate if available
   }
 
   @override
   void dispose() {
     spotifyService.dispose();
-    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      spotifyService.initDeepLinkHandlers(_handleDeepLink);
-    }
-  }
-
-  void _initSpotifyService() {
-    spotifyService.initDeepLinkHandlers(_handleDeepLink);
-  }
-
-  void _handleDeepLink(String url) async {
-    await spotifyService.handleDeepLink(url, () {
-      _verifyTokenAndNavigate(); // Use centralized verification after handling deep link
-    });
-  }
-
-  // Centralized method for verifying the token and navigating to the main page
+  // Check if a Spotify token exists and navigate to the main page
   Future<void> _verifyTokenAndNavigate() async {
     setState(() {
       isLoading = true;
@@ -76,12 +57,13 @@ class _SignUpScreenState extends State<SignUpScreen> with WidgetsBindingObserver
     });
   }
 
-  // Navigation method to go to the main page
+  // Navigate to the main page after successful login
   void _navigateToMainPage() {
-    //Navigator.pushReplacementNamed(context, '/');
+    Navigator.pushReplacementNamed(context, '/edit-profile');
     print("Navigating to main page");
   }
 
+  // Register user through custom registration process
   Future<void> _registerUser() async {
     final String username = _usernameController.text;
     final String email = _emailController.text;
@@ -108,7 +90,7 @@ class _SignUpScreenState extends State<SignUpScreen> with WidgetsBindingObserver
       );
 
       if (token != null) {
-        _verifyTokenAndNavigate(); // Use the centralized method
+        _verifyTokenAndNavigate(); // After registration, verify token and navigate
       } else {
         setState(() {
           errorMessage = 'Registration failed: Unable to get token';
@@ -126,6 +108,7 @@ class _SignUpScreenState extends State<SignUpScreen> with WidgetsBindingObserver
     }
   }
 
+  // Spotify login integration
   Future<void> _loginWithSpotify() async {
     setState(() {
       isLoading = true;
@@ -133,8 +116,8 @@ class _SignUpScreenState extends State<SignUpScreen> with WidgetsBindingObserver
       errorMessage = '';
     });
     try {
-      await spotifyService.loginWithSpotify();
-      _verifyTokenAndNavigate(); // Use the centralized method
+      await spotifyService.loginWithSpotify(); // Trigger Spotify login
+      _verifyTokenAndNavigate(); // After login, verify token and navigate
     } catch (e) {
       setState(() {
         errorMessage = 'Error launching Spotify login: $e';
@@ -299,7 +282,7 @@ class _SignUpScreenState extends State<SignUpScreen> with WidgetsBindingObserver
       onTapDown: (_) => _onSignUpButtonPressed(true),
       onTapUp: (_) => _onSignUpButtonPressed(false),
       onTapCancel: () => _onSignUpButtonPressed(false),
-      onTap: _registerUser,
+      onTap: _registerUser, // Register the user when button is pressed
       child: AnimatedContainer(
         duration: Duration(milliseconds: 200),
         curve: Curves.easeInOut,
@@ -367,12 +350,14 @@ class _SignUpScreenState extends State<SignUpScreen> with WidgetsBindingObserver
       onTapDown: (_) => _onSpotifyButtonPressed(true),
       onTapUp: (_) => _onSpotifyButtonPressed(false),
       onTapCancel: () => _onSpotifyButtonPressed(false),
-      onTap: _loginWithSpotify,
+      onTap: _loginWithSpotify, // Trigger Spotify login on button press
       child: AnimatedContainer(
         duration: Duration(milliseconds: 200),
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
-          color: isSpotifyButtonPressed ? const Color.fromARGB(215, 255, 255, 255) : white100,
+          color: isSpotifyButtonPressed
+              ? const Color.fromARGB(215, 255, 255, 255)
+              : white100,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(

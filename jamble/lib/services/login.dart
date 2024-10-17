@@ -2,30 +2,18 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class LoginService {
-  Future<String> getBackendUrl() async {
-    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+  final FlutterSecureStorage secureStorage = FlutterSecureStorage();
 
-    if (Platform.isAndroid) {
-      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-      if (!androidInfo.isPhysicalDevice) {
-        return 'http://10.0.2.2:3000'; // Android emulator
-      } else {
-        return 'http://your-local-ip:3000'; // Android physical device
-      }
-    } else if (Platform.isIOS) {
-      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-      if (!iosInfo.isPhysicalDevice) {
-        return 'http://localhost:3000'; // iOS simulator
-      } else {
-        return 'http://your-local-ip:3000'; // iOS physical device
-      }
-    } else {
-      return 'http://your-local-ip:3000'; // Fallback for unknown platforms
-    }
+  /// Get the backend URL. This method can be modified to fetch from a config file or environment variable.
+  Future<String> getBackendUrl() async {
+    const backendUrl = 'http://127.0.0.1:3000'; // Ensure this is always updated
+    debugPrint("Using backend URL: $backendUrl");
+    return backendUrl;
   }
 
   Future<String?> loginUser(String emailOrUsername, String password) async {
@@ -47,8 +35,16 @@ class LoginService {
       );
 
       if (response.statusCode == 200) {
-        // Successfully logged in
-        return null; // Indicate no error message
+        final responseData = jsonDecode(response.body);
+        final String? token = responseData['data']['token'];
+
+        if (token != null) {
+          // Store the token securely
+          await secureStorage.write(key: 'spotify_token', value: token);
+          return null; // Indicate no error message
+        } else {
+          return 'Failed to retrieve token.';
+        }
       } else {
         return 'Login failed: ${response.body}';
       }
