@@ -40,7 +40,7 @@ class LoginService {
 
         if (token != null) {
           // Store the token securely
-          await secureStorage.write(key: 'spotify_token', value: token);
+          await secureStorage.write(key: 'user_token', value: token);
           return null; // Indicate no error message
         } else {
           return 'Failed to retrieve token.';

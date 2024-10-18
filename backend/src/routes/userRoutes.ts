@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAllUsers, createUser, completeProfile, loginUser, editUser, deleteUser } from '../controllers/userController';
+import { getAllUsers, createUser, completeProfile, loginUser, editUser, deleteUser, getUserInfo } from '../controllers/userController';
 import { authenticateJWT } from '../middlewares/authMiddleware';
 
 const router: Router = Router();
@@ -21,5 +21,8 @@ router.put('/edit', authenticateJWT, editUser);
 
 // Delete user
 router.delete('/delete', authenticateJWT, deleteUser);
+
+// See user info
+router.get('/user', authenticateJWT, getUserInfo); // Added getUserInfo route here
 
 export default router;

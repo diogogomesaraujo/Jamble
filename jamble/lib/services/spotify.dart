@@ -24,7 +24,7 @@ class SpotifyService {
       final String? token = uri.queryParameters['token'];
 
       if (token != null) {
-        await secureStorage.write(key: 'spotify_token', value: token);
+        await secureStorage.write(key: 'user_token', value: token);
         await sendTokenToBackend(token);
       } else {
         throw Exception('Failed to retrieve token from the Spotify OAuth callback.');
@@ -57,7 +57,7 @@ class SpotifyService {
 
   Future<bool> checkExistingToken() async {
     try {
-      final token = await secureStorage.read(key: 'spotify_token');
+      final token = await secureStorage.read(key: 'user_token');
       return token != null;
     } catch (e) {
       errorMessage = 'Error checking token: $e';

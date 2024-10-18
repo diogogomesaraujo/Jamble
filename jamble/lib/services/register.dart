@@ -33,7 +33,7 @@ class RegisterService {
         if (token != null) {
           // Store the token securely
           print('Token to store: $token'); // Log the token before storage
-          await secureStorage.write(key: 'spotify_token', value: token);
+          await secureStorage.write(key: 'user_token', value: token);
           print('Token stored successfully'); // Confirm after storage    
           return token;
         } else {

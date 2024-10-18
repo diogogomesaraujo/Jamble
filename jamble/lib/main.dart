@@ -11,7 +11,7 @@ void main() async {
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
 
   // Delete any existing Spotify token on app initialization
-  await secureStorage.delete(key: 'spotify_token');
+  await secureStorage.delete(key: 'user_token');
 
   runApp(const MyApp());
 }

@@ -18,7 +18,7 @@ class EditProfileService {
   }) async {
     try {
       // Retrieve the stored token
-      String? token = await secureStorage.read(key: 'spotify_token');
+      String? token = await secureStorage.read(key: 'user_token');
       if (token == null) {
         throw Exception('Token not found. Please login again.');
       }

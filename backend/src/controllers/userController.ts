@@ -229,3 +229,33 @@ export const editUser = async (req: Request, res: Response): Promise<Response> =
         return res.status(500).json({ message: 'Error updating user', error });
     }
 };
+
+// Get user information from JWT token (excluding password)
+export const getUserInfo = async (req: Request, res: Response): Promise<Response> => {
+    const token = req.headers.authorization?.split(' ')[1]; // Extract the token from the Authorization header
+
+    if (!token) {
+        return sendErrorResponse(res, 401, 'Authorization token is missing');
+    }
+
+    try {
+        // Verify the token and extract the user_id
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET as string) as { user_id: string };
+
+        const userId = decodedToken.user_id;
+
+        // Find the user by ID and exclude the password field
+        const user = await User.findOne({
+            where: { user_id: userId },
+            attributes: { exclude: ['password'] }, // Exclude the password from the result
+        });
+
+        if (!user) {
+            return sendErrorResponse(res, 404, 'User not found');
+        }
+
+        return sendSuccessResponse(res, 200, 'User information retrieved successfully', user);
+    } catch (error) {
+        return sendErrorResponse(res, 500, 'Error retrieving user information', error);
+    }
+};
