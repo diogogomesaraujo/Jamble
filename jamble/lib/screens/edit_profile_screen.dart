@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import '../services/edit_profile.dart'; // Import the edit profile service
-import '../services/get_user.dart'; // Import the get user service
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // Define colors based on the provided palette
@@ -23,7 +22,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final EditProfileService _editProfileService = EditProfileService();
-  final UserService _userService = UserService();
+  final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   bool isSpotifyConnected = false;
   String _userImage = '';
@@ -36,21 +35,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _loadUserInfo();
   }
 
-  // Function to load user information and set it in the input fields
+  // Function to load user information from secure storage and set it in the input fields
   Future<void> _loadUserInfo() async {
-    final userData = await _userService.getUserInfo();
+    final username = await _secureStorage.read(key: 'user_username');
+    final email = await _secureStorage.read(key: 'user_email');
+    final description = await _secureStorage.read(key: 'user_small_description');
+    final userImage = await _secureStorage.read(key: 'user_image');
+    final userWallpaper = await _secureStorage.read(key: 'user_wallpaper');
+    final favoriteAlbumsString = await _secureStorage.read(key: 'user_favorite_albums');
+    final spotifyConnected = await _secureStorage.read(key: 'user_spotify_id') != null;
 
-    if (userData != null) {
-      setState(() {
-        _usernameController.text = userData['username'] ?? '';
-        _emailController.text = userData['email'] ?? '';
-        _descriptionController.text = userData['description'] ?? '';
-        _userImage = userData['userImage'] ?? '';
-        _userWallpaper = userData['userWallpaper'] ?? '';
-        _favoriteAlbums = List<String>.from(userData['favoriteAlbums'] ?? []);
-        isSpotifyConnected = userData['isSpotifyConnected'] ?? false;
-      });
-    }
+    setState(() {
+      _usernameController.text = username ?? '';
+      _emailController.text = email ?? '';
+      _descriptionController.text = description ?? '';
+      _userImage = userImage ?? '';
+      _userWallpaper = userWallpaper ?? '';
+      _favoriteAlbums = favoriteAlbumsString?.split(',') ?? [];
+      isSpotifyConnected = spotifyConnected;
+    });
   }
 
   @override
@@ -282,35 +285,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildInputField(String label, TextEditingController controller,
-      {bool obscureText = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
-            color: darkRed,
-          ),
+    {bool obscureText = false}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: TextStyle(
+          fontFamily: 'Poppins',
+          fontWeight: FontWeight.bold,
+          color: darkRed,
         ),
-        CupertinoTextField(
-          controller: controller,
-          placeholder: controller.text.isEmpty ? label : '', // Keep placeholder if no data
-          obscureText: obscureText,
-          padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-          placeholderStyle: TextStyle(
-            color: darkRed.withOpacity(0.5),
-          ),
-          style: TextStyle(color: darkRed),
-          decoration: BoxDecoration(
-            border: Border.all(color: grey),
-            borderRadius: BorderRadius.circular(5),
-          ),
+      ),
+      CupertinoTextField(
+        controller: controller,
+        placeholder: controller.text.isEmpty ? label : '', // Placeholder until data is loaded
+        obscureText: obscureText,
+        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+        placeholderStyle: TextStyle(
+          color: darkRed.withOpacity(0.5),
         ),
-      ],
-    );
-  }
+        style: TextStyle(color: darkRed),
+        decoration: BoxDecoration(
+          border: Border.all(color: grey),
+          borderRadius: BorderRadius.circular(5),
+        ),
+      ),
+    ],
+  );
+}
 
   Widget _buildFavoriteAlbumsRow() {
     return Row(

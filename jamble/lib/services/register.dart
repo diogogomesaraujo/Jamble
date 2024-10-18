@@ -8,7 +8,7 @@ import 'dart:io';
 class RegisterService {
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
 
-  /// Register a new user and store the token if successful
+  /// Register a new user and store the token and user information if successful
   Future<String?> registerUser({
     required String username,
     required String email,
@@ -29,15 +29,27 @@ class RegisterService {
         final responseData = jsonDecode(response.body);
         print('Response data: $responseData'); // Add this to see the full response
         final String? token = responseData['data']['token'];
+        final Map<String, dynamic>? user = responseData['data']['user'];
 
-        if (token != null) {
-          // Store the token securely
+        if (token != null && user != null) {
+          // Store the token and user information securely
           print('Token to store: $token'); // Log the token before storage
           await secureStorage.write(key: 'user_token', value: token);
-          print('Token stored successfully'); // Confirm after storage    
+
+          // Store user information
+          await secureStorage.write(key: 'user_id', value: user['id']);
+          await secureStorage.write(key: 'user_email', value: user['email']);
+          await secureStorage.write(key: 'user_username', value: user['username'] ?? '');
+          await secureStorage.write(key: 'user_spotify_id', value: user['spotify_id'] ?? '');
+          await secureStorage.write(key: 'user_small_description', value: user['small_description'] ?? '');
+          await secureStorage.write(key: 'user_image', value: user['user_image'] ?? '');
+          await secureStorage.write(key: 'user_wallpaper', value: user['user_wallpaper'] ?? '');
+          await secureStorage.write(key: 'user_favorite_albums', value: (user['favorite_albums'] as List<dynamic>?)?.join(',') ?? '');
+
+          print('User information and token stored successfully'); // Confirm after storage    
           return token;
         } else {
-          throw Exception('Failed to retrieve token.');
+          throw Exception('Failed to retrieve token or user information.');
         }
       } else {
         throw Exception('Registration failed: ${response.body}');

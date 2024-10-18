@@ -8,6 +8,11 @@ interface AuthenticatedUser extends Express.User {
     email: string;
     username?: string;
     spotify_id?: string;
+    small_description?: string;
+    user_image?: string;
+    user_wallpaper?: string;
+    favorite_albums?: string[];
+    is_spotify_account: boolean;
   };
 }
 
@@ -27,8 +32,8 @@ router.get(
       return res.status(400).json({ message: 'Spotify login failed', error: 'User or token missing from response' });
     }
 
-    // Construct a redirect URL with the token and user info
-    const redirectUrl = `myapp://callback?token=${user.token}&email=${user.user.email}`;
+    // Construct a redirect URL with the token and relevant user info, excluding password, user_id, createdAt, and updatedAt
+    const redirectUrl = `myapp://callback?token=${user.token}&username=${user.user.username}&email=${user.user.email}&is_spotify_account=${user.user.is_spotify_account}&spotify_id=${user.user.spotify_id}&small_description=${user.user.small_description}&user_image=${user.user.user_image}&user_wallpaper=${user.user.user_wallpaper}&favorite_albums=${user.user.favorite_albums?.join(',')}`;
 
     // Redirect the user back to the app
     res.redirect(redirectUrl);
