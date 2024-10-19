@@ -1,5 +1,3 @@
-// services/register.dart
-
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
@@ -27,7 +25,7 @@ class RegisterService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
-        print('Response data: $responseData'); // Add this to see the full response
+        print('Response data: $responseData'); // Log the full response
         final String? token = responseData['data']['token'];
         final Map<String, dynamic>? user = responseData['data']['user'];
 
@@ -40,13 +38,20 @@ class RegisterService {
           await secureStorage.write(key: 'user_id', value: user['id']);
           await secureStorage.write(key: 'user_email', value: user['email']);
           await secureStorage.write(key: 'user_username', value: user['username'] ?? '');
-          await secureStorage.write(key: 'user_spotify_id', value: user['spotify_id'] ?? '');
           await secureStorage.write(key: 'user_small_description', value: user['small_description'] ?? '');
           await secureStorage.write(key: 'user_image', value: user['user_image'] ?? '');
           await secureStorage.write(key: 'user_wallpaper', value: user['user_wallpaper'] ?? '');
           await secureStorage.write(key: 'user_favorite_albums', value: (user['favorite_albums'] as List<dynamic>?)?.join(',') ?? '');
 
-          print('User information and token stored successfully'); // Confirm after storage    
+          // Spotify-specific information (only if available)
+          if (user['spotify_id'] != null) {
+            await secureStorage.write(key: 'spotify_id', value: user['spotify_id']);
+            await secureStorage.write(key: 'spotify_access_token', value: user['spotify_access_token'] ?? '');
+            await secureStorage.write(key: 'spotify_refresh_token', value: user['spotify_refresh_token'] ?? '');
+            print('Spotify information stored successfully');
+          }
+
+          print('User information and token stored successfully');
           return token;
         } else {
           throw Exception('Failed to retrieve token or user information.');

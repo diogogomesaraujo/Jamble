@@ -7,14 +7,6 @@ import jwt from 'jsonwebtoken';
 
 dotenv.config(); // Load environment variables
 
-// Route to initiate Spotify login
-export const spotifyLogin = (req: Request, res: Response, next: any) => {
-  passport.authenticate('spotify', {
-    scope: ['user-read-email', 'user-read-private'],
-    session: false,
-  })(req, res, next);
-};
-
 // Helper function to generate JWT token
 const generateToken = (user_id: string): string => {
   if (!process.env.JWT_SECRET) {
@@ -25,9 +17,18 @@ const generateToken = (user_id: string): string => {
   });
 };
 
+// Route to initiate Spotify login
+export const spotifyLogin = (req: Request, res: Response, next: any) => {
+  passport.authenticate('spotify', {
+    scope: ['user-read-email', 'user-read-private'],
+    session: false,
+  })(req, res, next);
+};
+
 // Spotify Callback Endpoint for processing the OAuth response
 export const spotifyCallback = async (req: Request, res: Response) => {
-  const { code } = req.body;
+  const code = req.query.code as string;  // Coerce to string
+  const userId = req.query.state as string;  // Assuming state is used to pass userId
 
   // Validate if authorization code is provided
   if (!code) {
@@ -44,9 +45,9 @@ export const spotifyCallback = async (req: Request, res: Response) => {
   }
 
   try {
-    // Exchange code for access token
+    // Exchange authorization code for access token
     const tokenResponse = await axios.post('https://accounts.spotify.com/api/token', new URLSearchParams({
-      code,
+      code,  // Already coerced to string
       redirect_uri: redirectUri,
       grant_type: 'authorization_code',
       client_id: clientId,
@@ -74,32 +75,70 @@ export const spotifyCallback = async (req: Request, res: Response) => {
     const spotifyEmail = spotifyUserData.email;
     const spotifyUserId = spotifyUserData.id;
 
-    if (!spotifyEmail) {
-      return res.status(400).json({ message: 'Spotify email is required' });
+    // Ensure required data from Spotify is present
+    if (!spotifyUserId || !spotifyEmail) {
+      return res.status(400).json({ message: 'Spotify ID or email is missing from Spotify response' });
     }
 
     // Check if the user exists in your database by email
     let user = await User.findOne({ where: { email: spotifyEmail } });
 
     if (!user) {
-      // If the user does not exist, create a new user
-      user = await User.create({
-        email: spotifyEmail,
-        spotify_id: spotifyUserId,
-        username: spotifyUserData.display_name || null,
-        is_spotify_account: true,
-      });
+      // If the user does not exist, check if a non-Spotify account is being synced
+      if (userId) {
+        const nonSpotifyUser = await User.findByPk(userId);
 
-      // Generate JWT token for the new user
-      const token = generateToken(user.user_id);
+        if (!nonSpotifyUser) {
+          return res.status(404).json({ message: 'Non-Spotify user not found' });
+        }
 
-      // Send back token, refresh token, and user data to the frontend
-      return res.status(201).json({
-        message: 'Spotify account successfully registered',
-        user,
-        token,
-        refresh_token, // Include the refresh token for long-term usage
-      });
+        // Handle email mismatch
+        if (nonSpotifyUser.email !== spotifyEmail) {
+          return res.status(409).json({
+            message: 'Email mismatch between Spotify and your current account. Confirm if you want to sync.',
+            currentEmail: nonSpotifyUser.email,
+            spotifyEmail,
+          });
+        }
+
+        // Sync Spotify data with non-Spotify account
+        nonSpotifyUser.spotify_id = spotifyUserId;
+        nonSpotifyUser.is_spotify_account = true;
+        nonSpotifyUser.spotify_access_token = access_token; // Store access token
+        nonSpotifyUser.spotify_refresh_token = refresh_token; // Store refresh token
+
+        await nonSpotifyUser.save();
+
+        // Generate JWT token
+        const token = generateToken(nonSpotifyUser.user_id);
+
+        return res.status(200).json({
+          message: 'Spotify account synced successfully',
+          user: nonSpotifyUser,
+          token,
+          refresh_token,
+        });
+      } else {
+        // Create a new Spotify user if no userId is provided
+        user = await User.create({
+          email: spotifyEmail,
+          spotify_id: spotifyUserId,
+          username: spotifyUserData.display_name || null,
+          is_spotify_account: true,
+          spotify_access_token: access_token,
+          spotify_refresh_token: refresh_token,
+        });
+
+        // Generate JWT token for the new user
+        const token = generateToken(user.user_id);
+
+        return res.status(201).json({
+          message: 'Spotify account successfully registered',
+          user,
+          token,
+          refresh_token,
+        });
+      }
     }
 
     // Check if the existing user is not a Spotify account
@@ -109,13 +148,18 @@ export const spotifyCallback = async (req: Request, res: Response) => {
       });
     }
 
+    // Update access and refresh tokens if they exist
+    user.spotify_access_token = access_token;
+    user.spotify_refresh_token = refresh_token;
+    await user.save();
+
     // User exists and is a Spotify account, proceed to login
     const token = generateToken(user.user_id);
     return res.status(200).json({
       message: 'Spotify login successful',
       user,
       token,
-      refresh_token, // Include the refresh token here as well
+      refresh_token,
     });
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -135,7 +179,7 @@ export const spotifyCallback = async (req: Request, res: Response) => {
   }
 };
 
-// Additional route for refreshing tokens
+// Route for refreshing tokens
 export const refreshSpotifyToken = async (req: Request, res: Response) => {
   const { refresh_token } = req.body;
 

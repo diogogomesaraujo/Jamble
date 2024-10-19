@@ -13,6 +13,8 @@ interface UserAttributes {
     password?: string;
     is_spotify_account: boolean;
     spotify_id?: string | null;  // Spotify ID for users logging in via Spotify
+    spotify_access_token?: string | null;  // Spotify access token
+    spotify_refresh_token?: string | null;  // Spotify refresh token
     small_description?: string | null;
     user_image?: string | null;
     user_wallpaper?: string | null;
@@ -32,6 +34,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
     public password?: string;
     public is_spotify_account!: boolean;
     public spotify_id?: string | null;
+    public spotify_access_token?: string | null;
+    public spotify_refresh_token?: string | null;
     public small_description?: string | null;
     public user_image?: string | null;
     public user_wallpaper?: string | null;
@@ -56,6 +60,9 @@ User.init(
             type: DataTypes.STRING,
             allowNull: false,
             unique: true,  // Enforce unique emails
+            validate: {
+                isEmail: true,  // Ensure valid email format
+            },
         },
         password: {
             type: DataTypes.STRING,
@@ -70,21 +77,38 @@ User.init(
             allowNull: true,
             unique: true,  // Enforce unique Spotify ID
         },
+        spotify_access_token: {
+            type: DataTypes.STRING,
+            allowNull: true,  // Access token to interact with Spotify API
+        },
+        spotify_refresh_token: {
+            type: DataTypes.STRING,
+            allowNull: true,  // Refresh token to get new access tokens
+        },
         small_description: {
             type: DataTypes.STRING,
             allowNull: true,
+            validate: {
+                len: [0, 255],  // Limit description length to 255 characters
+            },
         },
         user_image: {
             type: DataTypes.STRING,
-            allowNull: true,
+            allowNull: true,  // URL or base64 image for the user's avatar
+            validate: {
+                isUrl: true,  // Ensure it's a valid URL (if using URL)
+            },
         },
         user_wallpaper: {
             type: DataTypes.STRING,
-            allowNull: true,
+            allowNull: true,  // URL or base64 image for user wallpaper
+            validate: {
+                isUrl: true,  // Ensure it's a valid URL (if using URL)
+            },
         },
         favorite_albums: {
             type: DataTypes.ARRAY(DataTypes.STRING),
-            allowNull: true,
+            allowNull: true,  // List of favorite albums (limited to 5)
             validate: {
                 len: [0, 5],  // Limit to 5 favorite albums
             },

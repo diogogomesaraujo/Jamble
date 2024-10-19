@@ -1,9 +1,10 @@
-import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
-import '../services/edit_profile.dart'; // Import the edit profile service
+import '../services/edit_profile.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 // Define colors based on the provided palette
 const Color darkRed = Color(0xFF3E111B);
@@ -21,10 +22,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final EditProfileService _editProfileService = EditProfileService();
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  final EditProfileService _editProfileService = EditProfileService();
 
-  bool isSpotifyConnected = false;
+  bool isSpotifyAccount = false; // Whether the account was created via Spotify
   String _userImage = '';
   String _userWallpaper = '';
   List<String> _favoriteAlbums = [];
@@ -35,7 +36,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _loadUserInfo();
   }
 
-  // Function to load user information from secure storage and set it in the input fields
+  // Function to load user information from secure storage
   Future<void> _loadUserInfo() async {
     final username = await _secureStorage.read(key: 'user_username');
     final email = await _secureStorage.read(key: 'user_email');
@@ -43,7 +44,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final userImage = await _secureStorage.read(key: 'user_image');
     final userWallpaper = await _secureStorage.read(key: 'user_wallpaper');
     final favoriteAlbumsString = await _secureStorage.read(key: 'user_favorite_albums');
-    final spotifyConnected = await _secureStorage.read(key: 'user_spotify_id') != null;
+    final isSpotifyAccountStored = (await _secureStorage.read(key: 'is_spotify_account') ?? 'false') == 'true';
 
     setState(() {
       _usernameController.text = username ?? '';
@@ -52,7 +53,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _userImage = userImage ?? '';
       _userWallpaper = userWallpaper ?? '';
       _favoriteAlbums = favoriteAlbumsString?.split(',') ?? [];
-      isSpotifyConnected = spotifyConnected;
+      isSpotifyAccount = isSpotifyAccountStored;
     });
   }
 
@@ -188,42 +189,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Username
                       _buildInputField("Username", _usernameController),
                       SizedBox(height: 20),
+                      
+                      // Show email and password only if it's not a Spotify account
+                      if (!isSpotifyAccount) ...[
+                        _buildInputField("Email Address", _emailController),
+                        SizedBox(height: 20),
+                        _buildInputField("Password", _passwordController, obscureText: true),
+                        SizedBox(height: 20),
+                      ],
 
-                      // Email
-                      _buildInputField("Email Address", _emailController),
-                      SizedBox(height: 20),
-
-                      // Description
                       _buildInputField("Description", _descriptionController),
-                      SizedBox(height: 20),
-
-                      // Password
-                      _buildInputField("Password", _passwordController,
-                          obscureText: true),
-                      SizedBox(height: 20),
-
-                      // Spotify connection toggle
-                      Text(
-                        "Connect to Spotify",
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.bold,
-                          color: darkRed,
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      CupertinoSwitch(
-                        value: isSpotifyConnected,
-                        onChanged: (bool value) {
-                          setState(() {
-                            isSpotifyConnected = value;
-                          });
-                        },
-                        activeColor: peach,
-                      ),
                       SizedBox(height: 20),
 
                       // Favorite Albums section
@@ -284,36 +261,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController controller,
-    {bool obscureText = false}) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        style: TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.bold,
-          color: darkRed,
+  Widget _buildInputField(String label, TextEditingController controller, {bool obscureText = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+            color: darkRed,
+          ),
         ),
-      ),
-      CupertinoTextField(
-        controller: controller,
-        placeholder: controller.text.isEmpty ? label : '', // Placeholder until data is loaded
-        obscureText: obscureText,
-        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
-        placeholderStyle: TextStyle(
-          color: darkRed.withOpacity(0.5),
+        CupertinoTextField(
+          controller: controller,
+          placeholder: label,
+          obscureText: obscureText,
+          padding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+          placeholderStyle: TextStyle(
+            color: darkRed.withOpacity(0.5),
+          ),
+          style: TextStyle(color: darkRed),
+          decoration: BoxDecoration(
+            border: Border.all(color: grey),
+            borderRadius: BorderRadius.circular(5),
+          ),
         ),
-        style: TextStyle(color: darkRed),
-        decoration: BoxDecoration(
-          border: Border.all(color: grey),
-          borderRadius: BorderRadius.circular(5),
-        ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
   Widget _buildFavoriteAlbumsRow() {
     return Row(
@@ -361,7 +337,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
       _showNotificationBanner('Profile updated successfully!', Colors.green);
     } catch (error) {
-      _showNotificationBanner('Error updating profile: $error', Colors.red);
+      _showNotificationBanner('Error updating profile!', Colors.red);
     }
   }
 
@@ -369,20 +345,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     showCupertinoDialog(
       context: context,
       builder: (context) {
-        return CupertinoPopupSurface(
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-            color: backgroundColor,
-            child: Text(
-              message,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                color: white100,
+        return Stack(
+          children: [
+            Positioned(
+              top: MediaQuery.of(context).size.height * 0.1,
+              left: 20,
+              right: 20,
+              child: Material(
+                color: Colors.transparent,
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                  padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: backgroundColor.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        backgroundColor == Colors.green
+                            ? CupertinoIcons.check_mark_circled
+                            : CupertinoIcons.exclamationmark_triangle,
+                        color: white100,
+                        size: 24,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          message,
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            color: white100,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              textAlign: TextAlign.center,
             ),
-          ),
+          ],
         );
       },
     );

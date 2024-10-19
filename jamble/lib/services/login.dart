@@ -1,5 +1,3 @@
-// services/login.dart
-
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
@@ -51,7 +49,13 @@ class LoginService {
           await secureStorage.write(key: 'user_wallpaper', value: user['user_wallpaper'] ?? '');
           await secureStorage.write(key: 'user_favorite_albums', value: (user['favorite_albums'] as List<dynamic>?)?.join(',') ?? '');
 
-          return null; // Indicate no error message
+          // Store Spotify tokens if available
+          if (user.containsKey('spotify_access_token') && user.containsKey('spotify_refresh_token')) {
+            await secureStorage.write(key: 'spotify_access_token', value: user['spotify_access_token'] ?? '');
+            await secureStorage.write(key: 'spotify_refresh_token', value: user['spotify_refresh_token'] ?? '');
+          }
+
+          return null; // Indicate no error message (successful login)
         } else {
           return 'Failed to retrieve token or user information.';
         }
