@@ -1,10 +1,8 @@
-import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import '../services/edit_profile.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
 
 // Define colors based on the provided palette
 const Color darkRed = Color(0xFF3E111B);
@@ -25,10 +23,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   final EditProfileService _editProfileService = EditProfileService();
 
-  bool isSpotifyAccount = false; // Whether the account was created via Spotify
+  bool hasSpotifyId = false; // Whether the user has a Spotify ID
   String _userImage = '';
   String _userWallpaper = '';
   List<String> _favoriteAlbums = [];
+  bool _isLoading = true; // Loading flag to show loading indicator
 
   @override
   void initState() {
@@ -44,7 +43,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final userImage = await _secureStorage.read(key: 'user_image');
     final userWallpaper = await _secureStorage.read(key: 'user_wallpaper');
     final favoriteAlbumsString = await _secureStorage.read(key: 'user_favorite_albums');
-    final isSpotifyAccountStored = (await _secureStorage.read(key: 'is_spotify_account') ?? 'false') == 'true';
+    final spotifyId = await _secureStorage.read(key: 'user_spotify_id'); // Check for spotify_id
 
     setState(() {
       _usernameController.text = username ?? '';
@@ -53,16 +52,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _userImage = userImage ?? '';
       _userWallpaper = userWallpaper ?? '';
       _favoriteAlbums = favoriteAlbumsString?.split(',') ?? [];
-      isSpotifyAccount = isSpotifyAccountStored;
+
+      // Check if spotify_id exists and is not empty
+      hasSpotifyId = spotifyId != null && spotifyId.isNotEmpty;
+
+      _isLoading = false; // Loading complete
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Show loading indicator while data is loading
+    if (_isLoading) {
+      return Center(child: CupertinoActivityIndicator());
+    }
+
     return CupertinoPageScaffold(
       child: Stack(
         children: [
           SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: 100), // Padding to avoid overlapping with the Save button
             child: Column(
               children: [
                 Stack(
@@ -136,35 +145,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ],
                       ),
                     ),
-                    // Back button
-                    Positioned(
-                      top: 40,
-                      left: 20,
-                      child: CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: white100,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.all(10.0),
-                          child: Icon(
-                            EvaIcons.arrowBackOutline,
-                            color: darkRed,
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                    ),
                   ],
                 ),
                 SizedBox(height: 70), // Space for the avatar
@@ -192,8 +172,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       _buildInputField("Username", _usernameController),
                       SizedBox(height: 20),
                       
-                      // Show email and password only if it's not a Spotify account
-                      if (!isSpotifyAccount) ...[
+                      // Show email and password only if spotify_id is not present
+                      if (!hasSpotifyId) ...[
                         _buildInputField("Email Address", _emailController),
                         SizedBox(height: 20),
                         _buildInputField("Password", _passwordController, obscureText: true),
@@ -254,6 +234,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   color: null,
                 ),
               ),
+            ),
+          ),
+          // Back button (sticky)
+          Positioned(
+            top: 40,
+            left: 20,
+            child: CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: white100,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(10.0),
+                child: Icon(
+                  EvaIcons.arrowBackOutline,
+                  color: darkRed,
+                ),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
             ),
           ),
         ],
@@ -328,8 +337,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       await _editProfileService.editUserProfile(
         username: _usernameController.text,
-        email: _emailController.text,
-        password: _passwordController.text,
+        email: hasSpotifyId ? "" : _emailController.text,  // Email is empty for Spotify accounts
+        password: hasSpotifyId ? "" : _passwordController.text,  // Password is empty for Spotify accounts
         description: _descriptionController.text,
         userImage: _userImage,
         userWallpaper: _userWallpaper,

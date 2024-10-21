@@ -3,7 +3,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:frontend/services/spotify.dart'; // Import SpotifyService
 import 'package:frontend/services/login.dart'; // Import LoginService
-import 'dart:async';
 
 const Color darkRed = Color(0xFF3E111B);
 const Color grey = Color(0xFFDDDDDD);
@@ -18,11 +17,13 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
   final TextEditingController _emailOrUsernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
   bool isLoading = false;
   String errorMessage = '';
   bool isSpotifyLoading = false;
   bool isLoginButtonPressed = false;
   bool isSpotifyButtonPressed = false;
+
   final SpotifyService spotifyService = SpotifyService();
   final LoginService loginService = LoginService();
 
@@ -36,6 +37,8 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     spotifyService.dispose();
+    _emailOrUsernameController.dispose();
+    _passwordController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -46,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       isLoading = true;
     });
 
-    final tokenExists = await spotifyService.checkExistingToken();
+    final tokenExists = await spotifyService.checkExistingToken(context); // Pass context for navigation
     if (tokenExists) {
       _navigateToMainPage();
     }
@@ -58,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
   // Navigation method to go to the main page
   void _navigateToMainPage() {
-    Navigator.pushReplacementNamed(context, '/edit-profile');
+    Navigator.pushReplacementNamed(context, '/main-page');
     print("Navigating to main page");
   }
 
@@ -108,8 +111,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
       errorMessage = '';
     });
     try {
-      await spotifyService.loginWithSpotify();
-      _verifyTokenAndNavigate(); // Use centralized method
+      await spotifyService.loginWithSpotify(context); // Pass context for navigation
     } catch (e) {
       setState(() {
         errorMessage = 'Error launching Spotify login: $e';

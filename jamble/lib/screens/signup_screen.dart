@@ -38,6 +38,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   void dispose() {
     spotifyService.dispose();
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -47,20 +50,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       isLoading = true;
     });
 
-    final tokenExists = await spotifyService.checkExistingToken();
-    if (tokenExists) {
-      _navigateToMainPage();
-    }
+    await spotifyService.checkExistingToken(context); // Pass the context here
 
     setState(() {
       isLoading = false;
     });
-  }
-
-  // Navigate to the main page after successful login
-  void _navigateToMainPage() {
-    Navigator.pushReplacementNamed(context, '/edit-profile');
-    print("Navigating to main page");
   }
 
   // Register user through custom registration process
@@ -116,8 +110,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       errorMessage = '';
     });
     try {
-      await spotifyService.loginWithSpotify(); // Trigger Spotify login
-      _verifyTokenAndNavigate(); // After login, verify token and navigate
+      await spotifyService.loginWithSpotify(context); // Pass the context here for navigation
     } catch (e) {
       setState(() {
         errorMessage = 'Error launching Spotify login: $e';

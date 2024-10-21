@@ -34,11 +34,10 @@ passport.use(
                 let user = await User.findOne({ where: { email } });
 
                 if (!user) {
-                    // Create a new user if they don't exist
+                    // Create a new Spotify user without setting the username
                     user = await User.create({
                         email,
                         is_spotify_account: true,
-                        username: profile.displayName || null,  // Use display name from Spotify
                         spotify_id: profile.id,                 // Store Spotify ID
                         spotify_access_token: accessToken,      // Store access token
                         spotify_refresh_token: refreshToken,    // Store refresh token
@@ -66,7 +65,7 @@ passport.use(
 
 // Serialize the user into the session
 passport.serializeUser((user: any, done) => {
-    done(null, user);  // Here, you could just serialize user.id if using session-based auth
+    done(null, user);  // You could just serialize user.id if using session-based auth
 });
 
 // Deserialize the user out of the session

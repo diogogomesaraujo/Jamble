@@ -3,13 +3,14 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 
 class SpotifyService {
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
   String errorMessage = '';
 
   // Sync function for non-Spotify accounts linking with Spotify
-  Future<void> syncSpotifyWithAccount(String userId) async {
+  Future<void> syncSpotifyWithAccount(String userId, BuildContext context) async {
     final backendUrl = await getBackendUrl();
     final spotifyAuthUrl = '$backendUrl/api/auth/spotify/sync';  // Use the sync endpoint
 
@@ -32,7 +33,7 @@ class SpotifyService {
           await secureStorage.write(key: 'user_token', value: token);
 
           // Fetch and store the complete user information
-          await fetchUserInformation(token);
+          await fetchUserInformation(token, context);
 
           print('Spotify sync successful');
 
@@ -81,7 +82,7 @@ class SpotifyService {
   }
 
   // Login with Spotify using OAuth
-  Future<void> loginWithSpotify() async {
+  Future<void> loginWithSpotify(BuildContext context) async {
     final backendUrl = await getBackendUrl();
     final spotifyAuthUrl = '$backendUrl/api/auth/spotify';
     final callbackUrlScheme = 'myapp';  // Your app's custom scheme
@@ -100,8 +101,8 @@ class SpotifyService {
         // Store the token securely
         await secureStorage.write(key: 'user_token', value: token);
 
-        // Fetch and store the complete user information
-        await fetchUserInformation(token);
+        // Fetch and store the complete user information and check for username
+        await fetchUserInformation(token, context);
 
         // Print everything in the secure storage
         await printSecureStorage();
@@ -116,7 +117,7 @@ class SpotifyService {
   }
 
   // Function to fetch user info from the backend using the token
-  Future<void> fetchUserInformation(String token) async {
+  Future<void> fetchUserInformation(String token, BuildContext context) async {
     final backendUrl = await getBackendUrl();
     final userInfoUrl = '$backendUrl/api/users/user';
 
@@ -149,6 +150,14 @@ class SpotifyService {
           await secureStorage.write(key: 'spotify_refresh_token', value: user['spotify_refresh_token'] ?? '');
 
           print("User information stored successfully");
+
+          // Check if the user has a username; if not, navigate to Complete Profile
+          if (user['username'] == null || user['username'].isEmpty) {
+            Navigator.pushReplacementNamed(context, '/complete-profile');
+          } else {
+            // Otherwise, proceed to the main page
+            Navigator.pushReplacementNamed(context, '/edit-profile');
+          }
         } else {
           errorMessage = 'Failed to retrieve user information from the backend.';
         }
@@ -161,10 +170,16 @@ class SpotifyService {
   }
 
   // Check if an existing token is already stored
-  Future<bool> checkExistingToken() async {
+  Future<bool> checkExistingToken(BuildContext context) async {
     try {
       final token = await secureStorage.read(key: 'user_token');
-      return token != null;
+      if (token != null) {
+        // Fetch user information to check if username exists
+        await fetchUserInformation(token, context);
+        return true;
+      } else {
+        return false;
+      }
     } catch (e) {
       errorMessage = 'Error checking token: $e';
       return false;
@@ -173,7 +188,7 @@ class SpotifyService {
 
   // Utility function to get the backend URL (can be dynamic if needed)
   Future<String> getBackendUrl() async {
-    const backendUrl = 'http://127.0.0.1:3000';
+    const backendUrl = 'http://127.0.0.1:3000';  // Replace with your backend URL
     return backendUrl;
   }
 

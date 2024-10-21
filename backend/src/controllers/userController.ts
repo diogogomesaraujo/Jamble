@@ -193,29 +193,52 @@ export const editUser = async (req: Request, res: Response): Promise<Response> =
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Check for unique email
-        if (email && email !== user.email) {
-            const emailExists = await User.findOne({ where: { email } });
-            if (emailExists) {
-                return res.status(400).json({ message: 'Email already in use' });
+        // Handle updates based on user type (Spotify or non-Spotify)
+        if (user.is_spotify_account) {
+            // For Spotify users, restrict updates to certain fields
+            if (username) user.username = username;
+            if (small_description) user.small_description = small_description;
+            if (user_image) user.user_image = user_image;
+            if (user_wallpaper) user.user_wallpaper = user_wallpaper;
+            if (favorite_albums) {
+                if (Array.isArray(favorite_albums) && favorite_albums.length <= 5) {
+                    user.favorite_albums = favorite_albums;
+                } else {
+                    return res.status(400).json({ message: 'Favorite albums must be an array of up to 5 items.' });
+                }
             }
-        }
 
-        // Update fields
-        if (username) user.username = username;
-        if (email) user.email = email;
-        if (password) {
-            const hashedPassword = await bcrypt.hash(password, 10);
-            user.password = hashedPassword;
-        }
-        if (small_description) user.small_description = small_description;
-        if (user_image) user.user_image = user_image;
-        if (user_wallpaper) user.user_wallpaper = user_wallpaper;
-        if (favorite_albums) {
-            if (Array.isArray(favorite_albums) && favorite_albums.length <= 5) {
-                user.favorite_albums = favorite_albums;
-            } else {
-                return res.status(400).json({ message: 'Favorite albums must be an array of up to 5 items.' });
+            // For Spotify accounts, prevent email and password updates
+            if (email || password) {
+                return res.status(400).json({ message: 'Email and password cannot be updated for Spotify accounts' });
+            }
+
+        } else {
+            // For non-Spotify users, allow full updates
+            if (username) user.username = username;
+            if (email && email !== user.email) {
+                // Check for unique email
+                const emailExists = await User.findOne({ where: { email } });
+                if (emailExists) {
+                    return res.status(400).json({ message: 'Email already in use' });
+                }
+                user.email = email;
+            }
+
+            if (password) {
+                const hashedPassword = await bcrypt.hash(password, 10);
+                user.password = hashedPassword;
+            }
+
+            if (small_description) user.small_description = small_description;
+            if (user_image) user.user_image = user_image;
+            if (user_wallpaper) user.user_wallpaper = user_wallpaper;
+            if (favorite_albums) {
+                if (Array.isArray(favorite_albums) && favorite_albums.length <= 5) {
+                    user.favorite_albums = favorite_albums;
+                } else {
+                    return res.status(400).json({ message: 'Favorite albums must be an array of up to 5 items.' });
+                }
             }
         }
 

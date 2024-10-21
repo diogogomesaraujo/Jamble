@@ -48,6 +48,8 @@ class LoginService {
           await secureStorage.write(key: 'user_image', value: user['user_image'] ?? '');
           await secureStorage.write(key: 'user_wallpaper', value: user['user_wallpaper'] ?? '');
           await secureStorage.write(key: 'user_favorite_albums', value: (user['favorite_albums'] as List<dynamic>?)?.join(',') ?? '');
+          await secureStorage.write(key: 'is_spotify_account', value: user['is_spotify_account'].toString()); // Save is_spotify_account
+
 
           // Store Spotify tokens if available
           if (user.containsKey('spotify_access_token') && user.containsKey('spotify_refresh_token')) {

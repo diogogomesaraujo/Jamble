@@ -123,7 +123,6 @@ export const spotifyCallback = async (req: Request, res: Response) => {
         user = await User.create({
           email: spotifyEmail,
           spotify_id: spotifyUserId,
-          username: spotifyUserData.display_name || null,
           is_spotify_account: true,
           spotify_access_token: access_token,
           spotify_refresh_token: refresh_token,

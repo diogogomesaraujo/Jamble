@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:frontend/screens/blank.dart';
+import 'package:frontend/screens/complete_profile_screen.dart';
 import 'package:frontend/screens/edit_profile_screen.dart';
 import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/screens/signup_screen.dart';
@@ -37,6 +38,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginScreen(),   // Login screen
         '/edit-profile': (context) => EditProfileScreen(), // Edit profile screen
         '/': (context) => BlankScreen(), // Home screen
+        '/complete-profile': (context) => CompleteProfileScreen(),
         // Add more routes as needed
       },
     );
