@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart'; // For handling SVG images
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
-import 'package:frontend/services/favourite_albums.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../services/favourite_albums.dart';
 import '../services/edit_profile.dart';
 import '../modals/album_search_modal.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-// Define colors based on the provided palette
 const Color darkRed = Color(0xFF3E111B);
 const Color grey = Color(0xFFF2F2F2);
 const Color peach = Color(0xFFFEA57D);
@@ -30,7 +28,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool hasSpotifyId = false;
   String _userImage = '';
   String _userWallpaper = '';
-  List<Map<String, String>?> _favoriteAlbums = List.filled(5, null); // Array of 5 albums
+  List<Album> _favoriteAlbums = List.generate(5, (_) => Album.empty()); // Initialize with empty albums
   bool _isLoading = true;
 
   @override
@@ -45,23 +43,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final description = await _secureStorage.read(key: 'user_small_description');
     final userImage = await _secureStorage.read(key: 'user_image');
     final userWallpaper = await _secureStorage.read(key: 'user_wallpaper');
-    final favoriteAlbumsString = await _secureStorage.read(key: 'user_favorite_albums');
     final spotifyId = await _secureStorage.read(key: 'user_spotify_id');
 
-    if (favoriteAlbumsString != null && favoriteAlbumsString.isNotEmpty) {
-      List<dynamic> albumList = favoriteAlbumsString.split('|');
-      _favoriteAlbums = albumList.map((albumString) {
-        List<String> albumData = albumString.split(',');
-        if (albumData.length == 4) { // Ensure all necessary fields are present
-          return {
-            'id': albumData[0], // Add the 'id'
-            'name': albumData[1],
-            'artist': albumData[2], // Add the 'artist'
-            'imageUrl': albumData[3], 
-          };
-        }
-        return null;
-      }).toList();
+    List<Album> albumList = [];
+    try {
+      albumList = await FavouriteAlbumsService().getFavoriteAlbums();
+    } catch (e) {
+      _showNotificationBanner("Error loading albums: ${e.toString()}", Colors.red);
     }
 
     setState(() {
@@ -70,9 +58,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _descriptionController.text = description ?? '';
       _userImage = userImage ?? '';
       _userWallpaper = userWallpaper ?? '';
-
+      _favoriteAlbums = albumList.isNotEmpty ? albumList : List.generate(5, (_) => Album.empty());
       hasSpotifyId = spotifyId != null && spotifyId.isNotEmpty;
-
       _isLoading = false;
     });
   }
@@ -90,10 +77,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             padding: EdgeInsets.only(bottom: 100),
             child: Column(
               children: [
+                // Avatar and wallpaper
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    // Wallpaper
                     Container(
                       width: MediaQuery.of(context).size.width,
                       height: 180,
@@ -161,9 +148,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: 70), // Space for the avatar
+                SizedBox(height: 70),
 
-                // Edit Profile section title
                 Center(
                   child: Text(
                     "Edit Profile",
@@ -177,7 +163,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 SizedBox(height: 20),
 
-                // Form fields
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 30.0),
                   child: Column(
@@ -210,7 +195,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ],
             ),
           ),
-          // Save changes button (sticky at the bottom)
+          // Save changes button
           Positioned(
             bottom: 0,
             left: 0,
@@ -243,34 +228,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   color: null,
                 ),
               ),
-            ),
-          ),
-          Positioned(
-            top: 40,
-            left: 20,
-            child: CupertinoButton(
-              padding: EdgeInsets.zero,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: white100,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(10.0),
-                child: Icon(
-                  EvaIcons.arrowBackOutline,
-                  color: darkRed,
-                ),
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
             ),
           ),
         ],
@@ -316,73 +273,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         return GestureDetector(
           onTap: () {
-            // Open the Cupertino-style modal when a slot is tapped
             showCupertinoModalPopup(
               context: context,
               builder: (BuildContext context) => AlbumSearchModal(
                 onAlbumSelected: (selectedAlbum) {
                   setState(() {
-                    _favoriteAlbums[index] = {
-                      'id': selectedAlbum.id, // Required 'id' parameter
-                      'name': selectedAlbum.name,
-                      'artist': selectedAlbum.artist, // Required 'artist' parameter
-                      'imageUrl': selectedAlbum.imageUrl,
-                      'spotifyUrl': selectedAlbum.spotifyUrl, // Required 'spotifyUrl' parameter
-                    };
+                    _favoriteAlbums[index] = selectedAlbum ?? Album.empty(); // Reset to empty if null
                   });
                 },
-                favouriteAlbums: _favoriteAlbums
-                    .where((album) => album != null)
-                    .map((album) => Album(
-                          id: album!['id']!,
-                          name: album['name']!,
-                          artist: album['artist']!,
-                          imageUrl: album['imageUrl']!,
-                          spotifyUrl: album['spotifyUrl'] ?? '', // Handle empty spotifyUrl
-                        ))
-                    .toList(), // Pass the favorite albums as a List<Album>
+                favouriteAlbums: _favoriteAlbums,
               ),
             );
           },
-          child: album != null
-              ? Container(
-                  width: MediaQuery.of(context).size.width * 0.13,
-                  height: MediaQuery.of(context).size.width * 0.13,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    image: DecorationImage(
-                      image: NetworkImage(album['imageUrl']!),
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.13,
+            height: MediaQuery.of(context).size.width * 0.13,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: album.id == 'empty' ? grey : null,
+              image: album.id != 'empty'
+                  ? DecorationImage(
+                      image: NetworkImage(album.imageUrl),
                       fit: BoxFit.cover,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                )
-              : Container(
-                  width: MediaQuery.of(context).size.width * 0.13,
-                  height: MediaQuery.of(context).size.width * 0.13,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: grey,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
+                    )
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: album.id == 'empty'
+                ? Icon(
                     CupertinoIcons.add,
                     color: darkRed.withOpacity(0.5),
                     size: 18,
-                  ),
-                ),
+                  )
+                : null,
+          ),
         );
       }),
     );
@@ -391,8 +321,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void _saveProfile() async {
     try {
       final List<String> favoriteAlbumIds = _favoriteAlbums
-          .where((album) => album != null)
-          .map((album) => album!['id']!)
+          .where((album) => album.id != 'empty') // Filter out empty albums
+          .map((album) => album.id)
           .toList();
 
       await _editProfileService.editUserProfile(

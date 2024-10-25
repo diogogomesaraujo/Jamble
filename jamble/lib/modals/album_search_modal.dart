@@ -5,8 +5,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../services/favourite_albums.dart'; // Your service for searching albums
 
 class AlbumSearchModal extends StatefulWidget {
-  final Function(Album) onAlbumSelected; // Callback for when an album is selected
-  final List<Album> favouriteAlbums; // List of favourite albums
+  final Function(Album?) onAlbumSelected; // Callback for when an album is selected or removed
+  final List<Album?> favouriteAlbums; // List of favourite albums
 
   AlbumSearchModal({
     required this.onAlbumSelected,
@@ -243,6 +243,23 @@ class _AlbumSearchModalState extends State<AlbumSearchModal> {
                     fontWeight: FontWeight.normal,
                   ),
                 ),
+              ),
+            ),
+          ),
+          SizedBox(height: 10),
+          // "Remove" Text that looks similar to the image without a button container
+          GestureDetector(
+            onTap: () {
+              widget.onAlbumSelected(null); // Pass null to remove the album
+              Navigator.pop(context); // Close the modal
+            },
+            child: Text(
+              "Remove",
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.normal,
+                fontSize: 16,
+                color: darkRed.withOpacity(0.8),
               ),
             ),
           ),

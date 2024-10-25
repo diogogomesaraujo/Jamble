@@ -7,7 +7,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class LoginService {
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
 
-  /// Get the backend URL. This method can be modified to fetch from a config file or environment variable.
   Future<String> getBackendUrl() async {
     const backendUrl = 'http://127.0.0.1:3000'; // Ensure this is always updated
     debugPrint("Using backend URL: $backendUrl");
@@ -47,9 +46,13 @@ class LoginService {
           await secureStorage.write(key: 'user_small_description', value: user['small_description'] ?? '');
           await secureStorage.write(key: 'user_image', value: user['user_image'] ?? '');
           await secureStorage.write(key: 'user_wallpaper', value: user['user_wallpaper'] ?? '');
-          await secureStorage.write(key: 'user_favorite_albums', value: (user['favorite_albums'] as List<dynamic>?)?.join(',') ?? '');
-          await secureStorage.write(key: 'is_spotify_account', value: user['is_spotify_account'].toString()); // Save is_spotify_account
 
+          // Handle favorite albums: check if albums are stored, if not, initialize empty albums
+          final favoriteAlbums = (user['favorite_albums'] as List<dynamic>?)?.join('|') ?? '';  // Join with pipe separator for storage
+          await secureStorage.write(
+            key: 'user_favorite_albums',
+            value: favoriteAlbums.isNotEmpty ? favoriteAlbums : 'empty|empty|empty|empty|empty',
+          );
 
           // Store Spotify tokens if available
           if (user.containsKey('spotify_access_token') && user.containsKey('spotify_refresh_token')) {

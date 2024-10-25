@@ -9,38 +9,28 @@ class SpotifyService {
   final FlutterSecureStorage secureStorage = FlutterSecureStorage();
   String errorMessage = '';
 
-  // Sync function for non-Spotify accounts linking with Spotify
   Future<void> syncSpotifyWithAccount(String userId, BuildContext context) async {
     final backendUrl = await getBackendUrl();
     final spotifyAuthUrl = '$backendUrl/api/auth/spotify/sync';  // Use the sync endpoint
 
     try {
-      // Start the Spotify OAuth flow for account syncing
       final result = await FlutterWebAuth.authenticate(
         url: spotifyAuthUrl,
-        callbackUrlScheme: 'myapp',  // Your app's custom scheme
+        callbackUrlScheme: 'myapp',
       );
 
       final Uri uri = Uri.parse(result);
       final String? token = uri.queryParameters['token'];
 
       if (token != null) {
-        // Send token and userId to backend for syncing
         final response = await sendSyncTokenToBackend(token, userId);
 
         if (response != null && response['status'] == 'success') {
-          // Handle successful sync, store token securely
           await secureStorage.write(key: 'user_token', value: token);
-
-          // Fetch and store the complete user information
           await fetchUserInformation(token, context);
-
           print('Spotify sync successful');
-
-          // Print everything in the secure storage
           await printSecureStorage();
         } else if (response != null && response['status'] == 'email_mismatch') {
-          // Handle email mismatch scenario
           errorMessage = 'Email mismatch: Spotify and your account email do not match.';
         } else {
           throw Exception('Sync failed.');
@@ -53,10 +43,9 @@ class SpotifyService {
     }
   }
 
-  // Function to send sync token and userId to the backend
   Future<Map<String, dynamic>?> sendSyncTokenToBackend(String accessToken, String userId) async {
     final backendUrl = await getBackendUrl();
-    final syncUrl = '$backendUrl/api/auth/spotify/sync';  // Sync endpoint in the backend
+    final syncUrl = '$backendUrl/api/auth/spotify/sync';
 
     try {
       final response = await http.post(
@@ -64,13 +53,13 @@ class SpotifyService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'access_token': accessToken,
-          'userId': userId,  // Sending user ID to link the accounts
+          'userId': userId,
         }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
-        return responseData;  // Return the response from the backend
+        return responseData;
       } else {
         errorMessage = 'Backend error: ${response.body}';
         return null;
@@ -81,14 +70,12 @@ class SpotifyService {
     }
   }
 
-  // Login with Spotify using OAuth
   Future<void> loginWithSpotify(BuildContext context) async {
     final backendUrl = await getBackendUrl();
     final spotifyAuthUrl = '$backendUrl/api/auth/spotify';
-    final callbackUrlScheme = 'myapp';  // Your app's custom scheme
+    final callbackUrlScheme = 'myapp';
 
     try {
-      // Start the Spotify OAuth flow for login
       final result = await FlutterWebAuth.authenticate(
         url: spotifyAuthUrl,
         callbackUrlScheme: callbackUrlScheme,
@@ -98,13 +85,8 @@ class SpotifyService {
       final String? token = uri.queryParameters['token'];
 
       if (token != null) {
-        // Store the token securely
         await secureStorage.write(key: 'user_token', value: token);
-
-        // Fetch and store the complete user information and check for username
         await fetchUserInformation(token, context);
-
-        // Print everything in the secure storage
         await printSecureStorage();
       } else {
         throw Exception('Failed to retrieve token from the Spotify OAuth callback.');
@@ -116,7 +98,6 @@ class SpotifyService {
     }
   }
 
-  // Function to fetch user info from the backend using the token
   Future<void> fetchUserInformation(String token, BuildContext context) async {
     final backendUrl = await getBackendUrl();
     final userInfoUrl = '$backendUrl/api/users/user';
@@ -125,7 +106,7 @@ class SpotifyService {
       final response = await http.get(
         Uri.parse(userInfoUrl),
         headers: {
-          'Authorization': 'Bearer $token',  // Send token in Authorization header
+          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
       );
@@ -135,7 +116,6 @@ class SpotifyService {
         final Map<String, dynamic>? user = responseData['data'];
 
         if (user != null) {
-          // Store user information securely
           await secureStorage.write(key: 'user_id', value: user['user_id']);
           await secureStorage.write(key: 'user_email', value: user['email']);
           await secureStorage.write(key: 'user_username', value: user['username'] ?? '');
@@ -143,19 +123,21 @@ class SpotifyService {
           await secureStorage.write(key: 'user_small_description', value: user['small_description'] ?? '');
           await secureStorage.write(key: 'user_image', value: user['user_image'] ?? '');
           await secureStorage.write(key: 'user_wallpaper', value: user['user_wallpaper'] ?? '');
-          await secureStorage.write(key: 'user_favorite_albums', value: (user['favorite_albums'] as List<dynamic>?)?.join(',') ?? '');
 
-          // Store Spotify tokens if they are part of the user information
+          final favoriteAlbums = (user['favorite_albums'] as List<dynamic>?)?.join('|') ?? '';
+          await secureStorage.write(
+            key: 'user_favorite_albums',
+            value: favoriteAlbums.isNotEmpty ? favoriteAlbums : 'empty|empty|empty|empty|empty',
+          );
+
           await secureStorage.write(key: 'spotify_access_token', value: user['spotify_access_token'] ?? '');
           await secureStorage.write(key: 'spotify_refresh_token', value: user['spotify_refresh_token'] ?? '');
 
           print("User information stored successfully");
 
-          // Check if the user has a username; if not, navigate to Complete Profile
           if (user['username'] == null || user['username'].isEmpty) {
             Navigator.pushReplacementNamed(context, '/complete-profile');
           } else {
-            // Otherwise, proceed to the main page
             Navigator.pushReplacementNamed(context, '/edit-profile');
           }
         } else {
@@ -169,12 +151,10 @@ class SpotifyService {
     }
   }
 
-  // Check if an existing token is already stored
   Future<bool> checkExistingToken(BuildContext context) async {
     try {
       final token = await secureStorage.read(key: 'user_token');
       if (token != null) {
-        // Fetch user information to check if username exists
         await fetchUserInformation(token, context);
         return true;
       } else {
@@ -186,13 +166,11 @@ class SpotifyService {
     }
   }
 
-  // Utility function to get the backend URL (can be dynamic if needed)
   Future<String> getBackendUrl() async {
     const backendUrl = 'http://127.0.0.1:3000';  // Replace with your backend URL
     return backendUrl;
   }
 
-  // Function to print everything in the secure storage
   Future<void> printSecureStorage() async {
     final allItems = await secureStorage.readAll();
     print('Secure Storage Contents:');
@@ -201,6 +179,5 @@ class SpotifyService {
     });
   }
 
-  // Cleanup function
   void dispose() {}
 }
