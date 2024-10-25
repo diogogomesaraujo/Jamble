@@ -19,7 +19,7 @@ interface UserAttributes {
     user_image?: string | null;
     user_wallpaper?: string | null;
     favorite_albums?: string[] | null;
-    createdAt?: Date;  // Use camelCase for consistency
+    createdAt?: Date;
     updatedAt?: Date;
 }
 
@@ -94,23 +94,34 @@ User.init(
         },
         user_image: {
             type: DataTypes.STRING,
-            allowNull: true,  // URL or base64 image for the user's avatar
+            allowNull: true,
             validate: {
                 isUrl: true,  // Ensure it's a valid URL (if using URL)
             },
         },
         user_wallpaper: {
             type: DataTypes.STRING,
-            allowNull: true,  // URL or base64 image for user wallpaper
+            allowNull: true,
             validate: {
                 isUrl: true,  // Ensure it's a valid URL (if using URL)
             },
         },
         favorite_albums: {
-            type: DataTypes.ARRAY(DataTypes.STRING),
-            allowNull: true,  // List of favorite albums (limited to 5)
+            type: DataTypes.ARRAY(DataTypes.STRING),  // Array of strings for favorite album IDs
+            allowNull: true,
             validate: {
-                len: [0, 5],  // Limit to 5 favorite albums
+                isArrayOfStrings(value: string[] | null) {
+                    // Ensure value is an array of strings
+                    if (value && (!Array.isArray(value) || value.some((item) => typeof item !== 'string'))) {
+                        throw new Error('favorite_albums must be an array of strings.');
+                    }
+                },
+                maxItems(value: string[] | null) {
+                    // Ensure array length does not exceed 5
+                    if (value && value.length > 5) {
+                        throw new Error('You can only select up to 5 favorite albums.');
+                    }
+                },
             },
         },
         createdAt: {

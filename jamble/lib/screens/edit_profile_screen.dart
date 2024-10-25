@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart'; // For handling SVG images
 import 'package:eva_icons_flutter/eva_icons_flutter.dart';
+import 'package:frontend/services/favourite_albums.dart';
 import '../services/edit_profile.dart';
+import '../modals/album_search_modal.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // Define colors based on the provided palette
@@ -23,11 +27,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   final EditProfileService _editProfileService = EditProfileService();
 
-  bool hasSpotifyId = false; // Whether the user has a Spotify ID
+  bool hasSpotifyId = false;
   String _userImage = '';
   String _userWallpaper = '';
-  List<String> _favoriteAlbums = [];
-  bool _isLoading = true; // Loading flag to show loading indicator
+  List<Map<String, String>?> _favoriteAlbums = List.filled(5, null); // Array of 5 albums
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -35,7 +39,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _loadUserInfo();
   }
 
-  // Function to load user information from secure storage
   Future<void> _loadUserInfo() async {
     final username = await _secureStorage.read(key: 'user_username');
     final email = await _secureStorage.read(key: 'user_email');
@@ -43,7 +46,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final userImage = await _secureStorage.read(key: 'user_image');
     final userWallpaper = await _secureStorage.read(key: 'user_wallpaper');
     final favoriteAlbumsString = await _secureStorage.read(key: 'user_favorite_albums');
-    final spotifyId = await _secureStorage.read(key: 'user_spotify_id'); // Check for spotify_id
+    final spotifyId = await _secureStorage.read(key: 'user_spotify_id');
+
+    if (favoriteAlbumsString != null && favoriteAlbumsString.isNotEmpty) {
+      List<dynamic> albumList = favoriteAlbumsString.split('|');
+      _favoriteAlbums = albumList.map((albumString) {
+        List<String> albumData = albumString.split(',');
+        if (albumData.length == 4) { // Ensure all necessary fields are present
+          return {
+            'id': albumData[0], // Add the 'id'
+            'name': albumData[1],
+            'artist': albumData[2], // Add the 'artist'
+            'imageUrl': albumData[3], 
+          };
+        }
+        return null;
+      }).toList();
+    }
 
     setState(() {
       _usernameController.text = username ?? '';
@@ -51,18 +70,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _descriptionController.text = description ?? '';
       _userImage = userImage ?? '';
       _userWallpaper = userWallpaper ?? '';
-      _favoriteAlbums = favoriteAlbumsString?.split(',') ?? [];
 
-      // Check if spotify_id exists and is not empty
       hasSpotifyId = spotifyId != null && spotifyId.isNotEmpty;
 
-      _isLoading = false; // Loading complete
+      _isLoading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Show loading indicator while data is loading
     if (_isLoading) {
       return Center(child: CupertinoActivityIndicator());
     }
@@ -71,7 +87,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: Stack(
         children: [
           SingleChildScrollView(
-            padding: EdgeInsets.only(bottom: 100), // Padding to avoid overlapping with the Save button
+            padding: EdgeInsets.only(bottom: 100),
             child: Column(
               children: [
                 Stack(
@@ -88,7 +104,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         color: darkRed.withOpacity(0.3),
                       ),
                     ),
-                    // Avatar overlapping the wallpaper
                     Positioned(
                       bottom: -50,
                       left: MediaQuery.of(context).size.width / 2 - 50,
@@ -115,7 +130,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               color: darkRed.withOpacity(0.3),
                             ),
                           ),
-                          // Camera icon for uploading avatar
                           Positioned(
                             bottom: 0,
                             right: 0,
@@ -171,15 +185,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     children: [
                       _buildInputField("Username", _usernameController),
                       SizedBox(height: 20),
-                      
-                      // Show email and password only if spotify_id is not present
-                      if (!hasSpotifyId) ...[
-                        _buildInputField("Email Address", _emailController),
-                        SizedBox(height: 20),
-                        _buildInputField("Password", _passwordController, obscureText: true),
-                        SizedBox(height: 20),
-                      ],
-
+                      _buildInputField("Email Address", _emailController),
+                      SizedBox(height: 20),
+                      _buildInputField("Password", _passwordController, obscureText: true),
+                      SizedBox(height: 20),
                       _buildInputField("Description", _descriptionController),
                       SizedBox(height: 20),
 
@@ -236,7 +245,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
           ),
-          // Back button (sticky)
           Positioned(
             top: 40,
             left: 20,
@@ -304,30 +312,77 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: List.generate(5, (index) {
+        final album = _favoriteAlbums[index];
+
         return GestureDetector(
           onTap: () {
-            // Logic to add or modify favorite albums
+            // Open the Cupertino-style modal when a slot is tapped
+            showCupertinoModalPopup(
+              context: context,
+              builder: (BuildContext context) => AlbumSearchModal(
+                onAlbumSelected: (selectedAlbum) {
+                  setState(() {
+                    _favoriteAlbums[index] = {
+                      'id': selectedAlbum.id, // Required 'id' parameter
+                      'name': selectedAlbum.name,
+                      'artist': selectedAlbum.artist, // Required 'artist' parameter
+                      'imageUrl': selectedAlbum.imageUrl,
+                      'spotifyUrl': selectedAlbum.spotifyUrl, // Required 'spotifyUrl' parameter
+                    };
+                  });
+                },
+                favouriteAlbums: _favoriteAlbums
+                    .where((album) => album != null)
+                    .map((album) => Album(
+                          id: album!['id']!,
+                          name: album['name']!,
+                          artist: album['artist']!,
+                          imageUrl: album['imageUrl']!,
+                          spotifyUrl: album['spotifyUrl'] ?? '', // Handle empty spotifyUrl
+                        ))
+                    .toList(), // Pass the favorite albums as a List<Album>
+              ),
+            );
           },
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.13,
-            height: MediaQuery.of(context).size.width * 0.13,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: grey,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
+          child: album != null
+              ? Container(
+                  width: MediaQuery.of(context).size.width * 0.13,
+                  height: MediaQuery.of(context).size.width * 0.13,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    image: DecorationImage(
+                      image: NetworkImage(album['imageUrl']!),
+                      fit: BoxFit.cover,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                )
+              : Container(
+                  width: MediaQuery.of(context).size.width * 0.13,
+                  height: MediaQuery.of(context).size.width * 0.13,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: grey,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    CupertinoIcons.add,
+                    color: darkRed.withOpacity(0.5),
+                    size: 18,
+                  ),
                 ),
-              ],
-            ),
-            child: Icon(
-              CupertinoIcons.add,
-              color: darkRed.withOpacity(0.5),
-              size: 18,
-            ),
-          ),
         );
       }),
     );
@@ -335,15 +390,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   void _saveProfile() async {
     try {
+      final List<String> favoriteAlbumIds = _favoriteAlbums
+          .where((album) => album != null)
+          .map((album) => album!['id']!)
+          .toList();
+
       await _editProfileService.editUserProfile(
         username: _usernameController.text,
-        email: hasSpotifyId ? "" : _emailController.text,  // Email is empty for Spotify accounts
-        password: hasSpotifyId ? "" : _passwordController.text,  // Password is empty for Spotify accounts
+        email: hasSpotifyId ? "" : _emailController.text,
+        password: hasSpotifyId ? "" : _passwordController.text,
         description: _descriptionController.text,
         userImage: _userImage,
         userWallpaper: _userWallpaper,
-        favoriteAlbums: _favoriteAlbums,
+        favoriteAlbums: favoriteAlbumIds,
       );
+
       _showNotificationBanner('Profile updated successfully!', Colors.green);
     } catch (error) {
       _showNotificationBanner('Error updating profile!', Colors.red);
@@ -411,7 +472,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
 
     Future.delayed(Duration(seconds: 2), () {
-      Navigator.of(context).pop(); // Dismiss the notification banner after 2 seconds
+      Navigator.of(context).pop();
     });
   }
 }
