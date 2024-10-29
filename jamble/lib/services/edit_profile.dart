@@ -14,7 +14,7 @@ class EditProfileService {
     required String description,
     required String userImage,
     required String userWallpaper,
-    List<String>? favoriteAlbums, // Allows null to handle empty lists gracefully
+    List<String>? favoriteAlbums,
   }) async {
     try {
       // Retrieve the stored token from secure storage
@@ -23,14 +23,14 @@ class EditProfileService {
         throw Exception('Token not found. Please login again.');
       }
 
-      // Prepare the request body for profile update, managing empty album list if needed
+      // Prepare the request body with explicit empty strings if fields are empty
       Map<String, dynamic> requestBody = {
         'username': username,
         'email': email,
         'password': password,
         'small_description': description,
-        'user_image': userImage,
-        'user_wallpaper': userWallpaper,
+        'user_image': userImage.isNotEmpty ? userImage : "", // Ensure empty string if no image
+        'user_wallpaper': userWallpaper.isNotEmpty ? userWallpaper : "", // Ensure empty string if no wallpaper
         'favorite_albums': favoriteAlbums ?? [], // Sends an empty list if no albums provided
       };
 

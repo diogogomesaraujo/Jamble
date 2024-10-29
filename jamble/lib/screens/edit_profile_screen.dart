@@ -42,8 +42,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _loadUserInfo() async {
     final username = await _secureStorage.read(key: 'user_username');
     final email = await _secureStorage.read(key: 'user_email');
-    final description =
-        await _secureStorage.read(key: 'user_small_description');
+    final description = await _secureStorage.read(key: 'user_small_description');
     final userImage = await _secureStorage.read(key: 'user_image');
     final userWallpaper = await _secureStorage.read(key: 'user_wallpaper');
     final spotifyId = await _secureStorage.read(key: 'user_spotify_id');
@@ -103,11 +102,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 builder: (BuildContext context) =>
                                     ArtistSearchModal(
                                   onArtistSelected: (selectedArtistImageUrl) {
-                                    if (selectedArtistImageUrl != null) {
-                                      setState(() {
-                                        _userImage = selectedArtistImageUrl;
-                                      });
-                                    }
+                                    setState(() {
+                                      _userImage = selectedArtistImageUrl ?? '';
+                                    });
                                   },
                                 ),
                               );
@@ -126,16 +123,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     offset: Offset(0, 2),
                                   ),
                                 ],
-                                image: _userImage.isNotEmpty &&
-                                        _userImage != 'default_image_url'
+                                image: _userImage.isNotEmpty
                                     ? DecorationImage(
                                         image: NetworkImage(_userImage),
                                         fit: BoxFit.cover,
                                       )
                                     : null,
                               ),
-                              child: _userImage.isEmpty ||
-                                      _userImage == 'default_image_url'
+                              child: _userImage.isEmpty
                                   ? Icon(
                                       EvaIcons.personOutline,
                                       size: 50,
@@ -345,8 +340,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               builder: (BuildContext context) => AlbumSearchModal(
                 onAlbumSelected: (selectedAlbum) {
                   setState(() {
-                    _favoriteAlbums[index] = selectedAlbum ??
-                        Album.empty(); // Reset to empty if null
+                    _favoriteAlbums[index] = selectedAlbum ?? Album.empty();
                   });
                 },
                 favouriteAlbums: _favoriteAlbums,
@@ -398,7 +392,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         email: hasSpotifyId ? "" : _emailController.text,
         password: hasSpotifyId ? "" : _passwordController.text,
         description: _descriptionController.text,
-        userImage: _userImage,
+        userImage: _userImage.isNotEmpty ? _userImage : "", // Empty string if no image
         userWallpaper: _userWallpaper,
         favoriteAlbums: favoriteAlbumIds,
       );
