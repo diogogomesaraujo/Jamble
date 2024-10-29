@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/favourite_albums.dart';
 import '../services/edit_profile.dart';
 import '../modals/album_search_modal.dart';
+import '../modals/artist_search_modal.dart';
 
 const Color darkRed = Color(0xFF3E111B);
 const Color grey = Color(0xFFF2F2F2);
@@ -28,7 +29,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool hasSpotifyId = false;
   String _userImage = '';
   String _userWallpaper = '';
-  List<Album> _favoriteAlbums = List.generate(5, (_) => Album.empty()); // Initialize with empty albums
+  List<Album> _favoriteAlbums =
+      List.generate(5, (_) => Album.empty()); // Initialize with empty albums
   bool _isLoading = true;
 
   @override
@@ -40,7 +42,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _loadUserInfo() async {
     final username = await _secureStorage.read(key: 'user_username');
     final email = await _secureStorage.read(key: 'user_email');
-    final description = await _secureStorage.read(key: 'user_small_description');
+    final description =
+        await _secureStorage.read(key: 'user_small_description');
     final userImage = await _secureStorage.read(key: 'user_image');
     final userWallpaper = await _secureStorage.read(key: 'user_wallpaper');
     final spotifyId = await _secureStorage.read(key: 'user_spotify_id');
@@ -49,7 +52,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       albumList = await FavouriteAlbumsService().getFavoriteAlbums();
     } catch (e) {
-      _showNotificationBanner("Error loading albums: ${e.toString()}", Colors.red);
+      _showNotificationBanner(
+          "Error loading albums: ${e.toString()}", Colors.red);
     }
 
     setState(() {
@@ -58,7 +62,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _descriptionController.text = description ?? '';
       _userImage = userImage ?? '';
       _userWallpaper = userWallpaper ?? '';
-      _favoriteAlbums = albumList.isNotEmpty ? albumList : List.generate(5, (_) => Album.empty());
+      _favoriteAlbums = albumList.isNotEmpty
+          ? albumList
+          : List.generate(5, (_) => Album.empty());
       hasSpotifyId = spotifyId != null && spotifyId.isNotEmpty;
       _isLoading = false;
     });
@@ -85,65 +91,92 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       width: MediaQuery.of(context).size.width,
                       height: 180,
                       color: grey,
-                      child: Icon(
-                        EvaIcons.imageOutline,
-                        size: 60,
-                        color: darkRed.withOpacity(0.3),
-                      ),
+                      // child: Icon(
+                      //   EvaIcons.imageOutline,
+                      //   size: 60,
+                      //   color: darkRed.withOpacity(0.3),
+                      // ),
                     ),
                     Positioned(
                       bottom: -50,
                       left: MediaQuery.of(context).size.width / 2 - 50,
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: grey,
-                              border: Border.all(color: white100, width: 4),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 4,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
+                      child: GestureDetector(
+                        onTap: () {
+                          showCupertinoModalPopup(
+                            context: context,
+                            builder: (BuildContext context) =>
+                                ArtistSearchModal(
+                              onArtistSelected: (selectedArtistImageUrl) {
+                                if (selectedArtistImageUrl != null) {
+                                  setState(() {
+                                    _userImage = selectedArtistImageUrl;
+                                  });
+                                }
+                              },
                             ),
-                            child: Icon(
-                              EvaIcons.personOutline,
-                              size: 50,
-                              color: darkRed.withOpacity(0.3),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              width: 36,
-                              height: 36,
+                          );
+                        },
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 100,
+                              height: 100,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: peach,
+                                color: grey,
+                                border: Border.all(color: white100, width: 4),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: Colors.black.withOpacity(0.05),
                                     blurRadius: 4,
                                     offset: Offset(0, 2),
                                   ),
                                 ],
+                                image: _userImage.isNotEmpty &&
+                                        _userImage != 'default_image_url'
+                                    ? DecorationImage(
+                                        image: NetworkImage(_userImage),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
                               ),
-                              child: Center(
-                                child: Icon(
-                                  EvaIcons.camera,
-                                  color: white100,
-                                  size: 16,
+                              child: _userImage.isEmpty ||
+                                      _userImage == 'default_image_url'
+                                  ? Icon(
+                                      EvaIcons.personOutline,
+                                      size: 50,
+                                      color: darkRed.withOpacity(0.3),
+                                    )
+                                  : null,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: peach,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    EvaIcons.camera,
+                                    color: white100,
+                                    size: 16,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -172,7 +205,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       SizedBox(height: 20),
                       _buildInputField("Email Address", _emailController),
                       SizedBox(height: 20),
-                      _buildInputField("Password", _passwordController, obscureText: true),
+                      _buildInputField("Password", _passwordController,
+                          obscureText: true),
                       SizedBox(height: 20),
                       _buildInputField("Description", _descriptionController),
                       SizedBox(height: 20),
@@ -235,7 +269,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController controller, {bool obscureText = false}) {
+  Widget _buildInputField(String label, TextEditingController controller,
+      {bool obscureText = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -278,7 +313,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               builder: (BuildContext context) => AlbumSearchModal(
                 onAlbumSelected: (selectedAlbum) {
                   setState(() {
-                    _favoriteAlbums[index] = selectedAlbum ?? Album.empty(); // Reset to empty if null
+                    _favoriteAlbums[index] = selectedAlbum ??
+                        Album.empty(); // Reset to empty if null
                   });
                 },
                 favouriteAlbums: _favoriteAlbums,
