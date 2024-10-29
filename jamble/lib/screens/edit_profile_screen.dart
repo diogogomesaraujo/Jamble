@@ -83,7 +83,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             padding: EdgeInsets.only(bottom: 100),
             child: Column(
               children: [
-                // Avatar and wallpaper
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -91,34 +90,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       width: MediaQuery.of(context).size.width,
                       height: 180,
                       color: grey,
-                      // child: Icon(
-                      //   EvaIcons.imageOutline,
-                      //   size: 60,
-                      //   color: darkRed.withOpacity(0.3),
-                      // ),
                     ),
                     Positioned(
                       bottom: -50,
                       left: MediaQuery.of(context).size.width / 2 - 50,
-                      child: GestureDetector(
-                        onTap: () {
-                          showCupertinoModalPopup(
-                            context: context,
-                            builder: (BuildContext context) =>
-                                ArtistSearchModal(
-                              onArtistSelected: (selectedArtistImageUrl) {
-                                if (selectedArtistImageUrl != null) {
-                                  setState(() {
-                                    _userImage = selectedArtistImageUrl;
-                                  });
-                                }
-                              },
-                            ),
-                          );
-                        },
-                        child: Stack(
-                          children: [
-                            Container(
+                      child: Stack(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              showCupertinoModalPopup(
+                                context: context,
+                                builder: (BuildContext context) =>
+                                    ArtistSearchModal(
+                                  onArtistSelected: (selectedArtistImageUrl) {
+                                    if (selectedArtistImageUrl != null) {
+                                      setState(() {
+                                        _userImage = selectedArtistImageUrl;
+                                      });
+                                    }
+                                  },
+                                ),
+                              );
+                            },
+                            child: Container(
                               width: 100,
                               height: 100,
                               decoration: BoxDecoration(
@@ -149,9 +143,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     )
                                   : null,
                             ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
+                          ),
+                          // Camera button overlaying the profile picture
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                                // Handle camera button action
+                              },
                               child: Container(
                                 width: 36,
                                 height: 36,
@@ -175,8 +175,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 ),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -260,6 +260,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ),
                   color: null,
+                ),
+              ),
+            ),
+          ),
+          // Circular sticky back button on top of everything
+          Positioned(
+            top: 50,
+            left: 20,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.of(context).pop();
+              },
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white, // White background for the button
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    EvaIcons.arrowBack,
+                    color: darkRed, // Icon color to match your theme
+                    size: 24,
+                  ),
                 ),
               ),
             ),

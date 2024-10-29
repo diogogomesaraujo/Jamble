@@ -61,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
 
   // Navigation method to go to the main page
   void _navigateToMainPage() {
-    Navigator.pushReplacementNamed(context, '/main-page');
+    Navigator.pushReplacementNamed(context, '/edit-profile');
     print("Navigating to main page");
   }
 
