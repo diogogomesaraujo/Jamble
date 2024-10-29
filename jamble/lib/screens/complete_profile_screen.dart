@@ -69,7 +69,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
   // Navigate to the main page after completing the profile
   void _navigateToMainPage() {
-    Navigator.pushReplacementNamed(context, '/edit-profile');
+    Navigator.pushReplacementNamed(context, '/');
   }
 
   void _onCompleteProfileButtonPressed(bool isPressed) {

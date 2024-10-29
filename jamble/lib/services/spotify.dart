@@ -138,7 +138,7 @@ class SpotifyService {
           if (user['username'] == null || user['username'].isEmpty) {
             Navigator.pushReplacementNamed(context, '/complete-profile');
           } else {
-            Navigator.pushReplacementNamed(context, '/edit-profile');
+            Navigator.pushReplacementNamed(context, '/');
           }
         } else {
           errorMessage = 'Failed to retrieve user information from the backend.';

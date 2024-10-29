@@ -172,7 +172,6 @@ export const deleteUser = async (req: Request, res: Response): Promise<Response>
 };
 
 // Edit user
-// Edit user
 export const editUser = async (req: Request, res: Response): Promise<Response> => {
     const {
         username,
@@ -198,7 +197,9 @@ export const editUser = async (req: Request, res: Response): Promise<Response> =
         if (user.is_spotify_account) {
             // For Spotify users, restrict updates to certain fields
             if (username) user.username = username;
-            if (small_description) user.small_description = small_description;
+            if (small_description !== undefined) {
+                user.small_description = small_description || null; // Set to null if empty
+            }
 
             // Set user_image to null if it is an empty string to indicate removal
             if (user_image === "") {
@@ -238,7 +239,9 @@ export const editUser = async (req: Request, res: Response): Promise<Response> =
                 user.password = hashedPassword;
             }
 
-            if (small_description) user.small_description = small_description;
+            if (small_description !== undefined) {
+                user.small_description = small_description || null; // Set to null if empty
+            }
 
             // Set user_image to null if it is an empty string to indicate removal
             if (user_image === "") {
@@ -267,7 +270,6 @@ export const editUser = async (req: Request, res: Response): Promise<Response> =
         return res.status(500).json({ message: 'Error updating user', error });
     }
 };
-
 
 // Get user information from JWT token (excluding password)
 export const getUserInfo = async (req: Request, res: Response): Promise<Response> => {

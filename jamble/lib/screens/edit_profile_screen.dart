@@ -208,7 +208,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                       // Favorite Albums section
                       Text(
-                        "Favorite Albums",
+                        "Favourite Albums",
                         style: TextStyle(
                           fontFamily: 'Poppins',
                           fontWeight: FontWeight.bold,
@@ -265,7 +265,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             left: 20,
             child: GestureDetector(
               onTap: () {
-                Navigator.of(context).pop();
+                Navigator.pushNamed(context, '/');
               },
               child: Container(
                 width: 50,
@@ -464,7 +464,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
 
     Future.delayed(Duration(seconds: 2), () {
-      Navigator.of(context).pop();
+      Navigator.pushNamed(context, '/');
     });
   }
 }
