@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:frontend/services/favourite_albums.dart';
+import 'package:frontend/widgets/top_artists_widget.dart'; // Correct path for TopArtistsComponent
 
 const Color darkRed = Color(0xFF3E111B);
 const Color grey = Color(0xFFF2F2F2);
@@ -23,6 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Album> _favoriteAlbums = [];
   bool _isLoading = true;
   bool _isFirstLoad = true;
+  String _selectedOption = 'Jambles'; // Default selected option
 
   @override
   void didChangeDependencies() {
@@ -219,18 +221,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     if (_favoriteAlbums.isNotEmpty)
                       _buildFavoriteAlbumsRow(),
 
-                    // Edit Profile Button
+                    // Edit Profile Button with orange shadow effect
                     SizedBox(height: 20),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 100),
                       child: Container(
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [peach, peach.withOpacity(0.8)],
-                          ),
+                          color: peach,
                           borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: peach.withOpacity(0.8),
+                              blurRadius: 15,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
                         ),
                         child: CupertinoButton(
                           onPressed: () {
@@ -253,13 +258,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
+
+                    // Jambles and On Repeat Options with smooth underline and text animation
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildOptionButton("Jambles"),
+                        SizedBox(width: 20),
+                        _buildOptionButton("On Repeat"),
+                      ],
+                    ),
                   ],
                 ),
               ),
               SizedBox(height: 20),
+
+              // Top Artists Component
+              TopArtistsComponent(),
+
+              SizedBox(height: 20),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildOptionButton(String option) {
+    bool isSelected = _selectedOption == option;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedOption = option;
+        });
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedDefaultTextStyle(
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 16,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? darkRed : darkRed.withOpacity(0.7),
+            ),
+            child: Text(option),
+          ),
+          SizedBox(height: 4), // Space between text and underline
+          AnimatedContainer(
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            height: 4, // Fixed height for underline
+            width: isSelected ? 30 : 0, // Animate width change on selection
+            decoration: BoxDecoration(
+              color: peach,
+              borderRadius: BorderRadius.circular(2), // Rounded edges for underline
+            ),
+          ),
+        ],
       ),
     );
   }

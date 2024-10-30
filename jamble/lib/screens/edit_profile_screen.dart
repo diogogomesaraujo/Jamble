@@ -32,6 +32,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   List<Album> _favoriteAlbums =
       List.generate(5, (_) => Album.empty()); // Initialize with empty albums
   bool _isLoading = true;
+  bool _isSaveButtonPressed = false;
 
   @override
   void initState() {
@@ -224,7 +225,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ],
             ),
           ),
-          // Save changes button
+          // Save changes button with orange glow effect
           Positioned(
             bottom: 0,
             left: 0,
@@ -232,29 +233,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: Container(
               color: Colors.white.withOpacity(0.9),
               padding: const EdgeInsets.all(20.0),
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [peach, peach.withOpacity(0.8)],
+              child: GestureDetector(
+                onTapDown: (_) => setState(() => _isSaveButtonPressed = true),
+                onTapUp: (_) => setState(() => _isSaveButtonPressed = false),
+                onTapCancel: () => setState(() => _isSaveButtonPressed = false),
+                onTap: _saveProfile,
+                child: AnimatedContainer(
+                  duration: Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  decoration: BoxDecoration(
+                    color: peach,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: peach.withOpacity(0.8),
+                        blurRadius: 15,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
                   ),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: CupertinoButton(
-                  onPressed: _saveProfile,
                   padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Text(
-                    "Save Changes",
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      color: white100,
-                      fontSize: 14,
-                      fontWeight: FontWeight.normal,
+                  child: Center(
+                    child: Text(
+                      "Save Changes",
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        color: white100,
+                        fontSize: 14,
+                        fontWeight: FontWeight.normal,
+                      ),
                     ),
                   ),
-                  color: null,
                 ),
               ),
             ),
@@ -464,7 +473,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
 
     Future.delayed(Duration(seconds: 2), () {
-      Navigator.pushNamed(context, '/');
+      Navigator.pop(context);
     });
   }
 }

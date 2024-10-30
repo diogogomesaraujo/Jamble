@@ -3,6 +3,7 @@ import { Strategy as SpotifyStrategy, Profile } from 'passport-spotify';
 import jwt from 'jsonwebtoken';
 import User from '../models/userModel';
 import dotenv from 'dotenv';
+import axios from 'axios';
 
 dotenv.config();
 
@@ -16,6 +17,29 @@ const generateToken = (user_id: string): string => {
     });
 };
 
+// Function to refresh Spotify access token
+const refreshSpotifyToken = async (refreshToken: string): Promise<string> => {
+    const response = await axios.post(
+        'https://accounts.spotify.com/api/token',
+        new URLSearchParams({
+            grant_type: 'refresh_token',
+            refresh_token: refreshToken,
+            client_id: process.env.SPOTIFY_CLIENT_ID as string,
+            client_secret: process.env.SPOTIFY_CLIENT_SECRET as string,
+        }).toString(),
+        {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        }
+    );
+    if (response.status === 200) {
+        return response.data.access_token;
+    } else {
+        throw new Error(`Failed to refresh access token: ${response.status} - ${response.data}`);
+    }
+};
+
 passport.use(
     new SpotifyStrategy(
         {
@@ -26,38 +50,46 @@ passport.use(
         async (accessToken, refreshToken, expires_in, profile: Profile, done) => {
             try {
                 const email = profile.emails?.[0]?.value || '';
-
                 if (!email) {
-                    return done(new Error('No email found for this Spotify profile'), undefined);  // Fixed: undefined instead of null
+                    return done(new Error('No email found for this Spotify profile'), undefined);
                 }
 
                 let user = await User.findOne({ where: { email } });
 
+                // If the user does not exist, create a new one
                 if (!user) {
-                    // Create a new Spotify user without setting the username
                     user = await User.create({
                         email,
                         is_spotify_account: true,
-                        spotify_id: profile.id,                 // Store Spotify ID
-                        spotify_access_token: accessToken,      // Store access token
-                        spotify_refresh_token: refreshToken,    // Store refresh token
+                        spotify_id: profile.id,
+                        spotify_access_token: accessToken,
+                        spotify_refresh_token: refreshToken,
                     });
                 } else {
-                    // Update Spotify tokens if the user already exists
-                    user.spotify_access_token = accessToken;
-                    user.spotify_refresh_token = refreshToken;
-                    user.spotify_id = profile.id;  // Ensure Spotify ID is up-to-date
+                    // Attempt to refresh token if access token is invalid
+                    try {
+                        await axios.get('https://api.spotify.com/v1/me', {
+                            headers: { Authorization: `Bearer ${user.spotify_access_token}` },
+                        });
+                    } catch {
+                        // If access token expired, refresh it
+                        if (user.spotify_refresh_token) {
+                            accessToken = await refreshSpotifyToken(user.spotify_refresh_token);
+                            user.spotify_access_token = accessToken;
+                            await user.save();
+                        } else {
+                            return done(new Error('Missing refresh token'), undefined);
+                        }
+                    }
+                    user.spotify_id = profile.id;
                     await user.save();
                 }
 
-                // Generate a JWT token for the user
+                // Generate a JWT for the user
                 const token = generateToken(user.user_id);
-
-                // Return the user and token via Passport's `done` function
-                return done(null, { token, user });  // Pass `null` directly to indicate no error
+                return done(null, { token, user });
             } catch (error) {
-                // Handle any errors that occur during the authentication process
-                return done(error as Error, undefined);  // Fixed: Pass undefined instead of null
+                return done(error as Error, undefined);
             }
         }
     )
@@ -65,10 +97,10 @@ passport.use(
 
 // Serialize the user into the session
 passport.serializeUser((user: any, done) => {
-    done(null, user);  // You could just serialize user.id if using session-based auth
+    done(null, user);
 });
 
 // Deserialize the user out of the session
 passport.deserializeUser((user: any, done) => {
-    done(null, user);  // Fetch user details if using session-based auth
+    done(null, user);
 });
