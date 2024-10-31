@@ -26,6 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
   bool _isFirstLoad = true;
   String _selectedOption = 'Jambles';
+  bool _hasSpotifyId = false;
 
   @override
   void didChangeDependencies() {
@@ -41,6 +42,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final username = await _secureStorage.read(key: 'user_username');
       final description = await _secureStorage.read(key: 'user_small_description');
       final userImage = await _secureStorage.read(key: 'user_image');
+      final spotifyId = await _secureStorage.read(key: 'user_spotify_id');
+
+      // Check if Spotify ID exists and is not empty
+      _hasSpotifyId = spotifyId != null && spotifyId.isNotEmpty;
 
       List<Album> albumList = [];
       try {
@@ -202,8 +207,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _buildOptionButton("Jambles"),
-                        SizedBox(width: 20),
-                        _buildOptionButton("On Repeat"),
+                        if (_hasSpotifyId) ...[
+                          SizedBox(width: 20),
+                          _buildOptionButton("On Repeat"),
+                        ],
                       ],
                     ),
                   ],
@@ -211,10 +218,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
 
               // Conditional rendering based on selected option
-              if (_selectedOption == "On Repeat") ...[
-                SizedBox(height: 20),
+              if (_selectedOption == "On Repeat" && _hasSpotifyId) ...[
+                SizedBox(height: 0),
                 TopArtistsComponent(),
-                SizedBox(height: 10), // Reduced spacing between artists and songs
+                SizedBox(height: 0), // Reduced spacing between artists and songs
                 TopSongsComponent(),
               ],
 
