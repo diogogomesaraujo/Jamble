@@ -3,7 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:frontend/services/favourite_albums.dart';
-import 'package:frontend/widgets/top_artists_widget.dart'; // Correct path for TopArtistsComponent
+import 'package:frontend/widgets/top_artists_widget.dart';
+import 'package:frontend/widgets/top_songs_widget.dart';
 
 const Color darkRed = Color(0xFF3E111B);
 const Color grey = Color(0xFFF2F2F2);
@@ -24,7 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<Album> _favoriteAlbums = [];
   bool _isLoading = true;
   bool _isFirstLoad = true;
-  String _selectedOption = 'Jambles'; // Default selected option
+  String _selectedOption = 'Jambles';
 
   @override
   void didChangeDependencies() {
@@ -141,10 +142,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Rounded top section
+              // Top padding for separation from content above
+              SizedBox(height: 80),
+
+              // Profile section
               Container(
                 width: double.infinity,
-                padding: EdgeInsets.only(top: 40, bottom: 20),
+                padding: EdgeInsets.symmetric(vertical: 20),
                 decoration: BoxDecoration(
                   color: beige,
                   borderRadius: BorderRadius.only(
@@ -154,44 +158,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Profile Image with border and shadow
-                    GestureDetector(
-                      onTap: () {
-                        // Navigate to image selection modal or add edit logic
-                      },
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: grey,
-                          border: Border.all(color: white100, width: 4),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                          image: _userImage.isNotEmpty
-                              ? DecorationImage(
-                                  image: NetworkImage(_userImage),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                        ),
-                        child: _userImage.isEmpty
-                            ? Icon(
-                                CupertinoIcons.person_solid,
-                                color: darkRed.withOpacity(0.3),
-                                size: 50,
-                              )
-                            : null,
-                      ),
-                    ),
-                    SizedBox(height: 15),
+                    // Profile Image
+                    _buildProfileImage(),
                     
                     // Username
+                    SizedBox(height: 16),
                     Text(
                       _username,
                       style: TextStyle(
@@ -201,10 +172,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: darkRed,
                       ),
                     ),
-                    
-                    // Description (conditionally rendered)
+
+                    // Description (Subtitle)
                     if (_description.isNotEmpty) ...[
-                      SizedBox(height: 5),
+                      SizedBox(height: 8),
                       Text(
                         _description,
                         style: TextStyle(
@@ -215,52 +186,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ],
-                    
-                    // Favorite Albums Row (conditionally rendered)
+
+                    // Favorite Albums Row
                     SizedBox(height: 20),
                     if (_favoriteAlbums.isNotEmpty)
                       _buildFavoriteAlbumsRow(),
 
-                    // Edit Profile Button with orange shadow effect
-                    SizedBox(height: 20),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 100),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: peach,
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: peach.withOpacity(0.8),
-                              blurRadius: 15,
-                              offset: Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: CupertinoButton(
-                          onPressed: () {
-                            Navigator.of(context).pushNamed('/edit-profile');
-                          },
-                          padding: EdgeInsets.zero,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                            child: Text(
-                              "Edit Profile",
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                color: white100,
-                                fontSize: 14,
-                                fontWeight: FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                          color: null,
-                        ),
-                      ),
-                    ),
+                    // Edit Profile Button
+                    SizedBox(height: 24),
+                    _buildEditProfileButton(),
 
-                    // Jambles and On Repeat Options with smooth underline and text animation
-                    SizedBox(height: 20),
+                    // Toggle for "Jambles" and "On Repeat"
+                    SizedBox(height: 30),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -272,14 +209,124 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-              SizedBox(height: 20),
 
-              // Top Artists Component
-              TopArtistsComponent(),
+              // Conditional rendering based on selected option
+              if (_selectedOption == "On Repeat") ...[
+                SizedBox(height: 20),
+                TopArtistsComponent(),
+                SizedBox(height: 10), // Reduced spacing between artists and songs
+                TopSongsComponent(),
+              ],
 
-              SizedBox(height: 20),
+              SizedBox(height: 40), // Bottom padding for visual breathing room
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileImage() {
+    return GestureDetector(
+      onTap: () {
+        // Navigate to image selection modal or add edit logic
+      },
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: grey,
+          border: Border.all(color: white100, width: 4),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+          image: _userImage.isNotEmpty
+              ? DecorationImage(
+                  image: NetworkImage(_userImage),
+                  fit: BoxFit.cover,
+                )
+              : null,
+        ),
+        child: _userImage.isEmpty
+            ? Icon(
+                CupertinoIcons.person_solid,
+                color: darkRed.withOpacity(0.3),
+                size: 50,
+              )
+            : null,
+      ),
+    );
+  }
+
+  Widget _buildFavoriteAlbumsRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: _favoriteAlbums.map((album) {
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.13,
+            height: MediaQuery.of(context).size.width * 0.13,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              image: album.imageUrl.isNotEmpty
+                  ? DecorationImage(
+                      image: NetworkImage(album.imageUrl),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildEditProfileButton() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 100),
+      child: Container(
+        decoration: BoxDecoration(
+          color: peach,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: peach.withOpacity(0.8),
+              blurRadius: 15,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: CupertinoButton(
+          onPressed: () {
+            Navigator.of(context).pushNamed('/edit-profile');
+          },
+          padding: EdgeInsets.zero,
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+            child: Text(
+              "Edit Profile",
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                color: white100,
+                fontSize: 14,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ),
+          color: null,
         ),
       ),
     );
@@ -307,50 +354,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             child: Text(option),
           ),
-          SizedBox(height: 4), // Space between text and underline
+          SizedBox(height: 4),
           AnimatedContainer(
             duration: Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-            height: 4, // Fixed height for underline
-            width: isSelected ? 30 : 0, // Animate width change on selection
+            height: 4,
+            width: isSelected ? 30 : 0,
             decoration: BoxDecoration(
               color: peach,
-              borderRadius: BorderRadius.circular(2), // Rounded edges for underline
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFavoriteAlbumsRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: _favoriteAlbums.map((album) {
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: 6),
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.13,
-            height: MediaQuery.of(context).size.width * 0.13,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              image: album.imageUrl.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(album.imageUrl),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 }

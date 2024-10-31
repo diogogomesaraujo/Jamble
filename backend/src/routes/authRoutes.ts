@@ -124,4 +124,62 @@ router.get('/spotify/top-artists', authenticateJWT, async (req: Request, res: Re
   }
 });
 
+// Route to get user's top songs from Spotify
+router.get('/spotify/top-songs', authenticateJWT, async (req: Request, res: Response) => {
+  const userId = (req.user as { user_id: string }).user_id;
+
+  try {
+    // Find the user in the database
+    const user = await User.findOne({ where: { user_id: userId } });
+
+    if (!user || !user.spotify_access_token || !user.spotify_refresh_token) {
+      return res.status(400).json({ message: 'User or Spotify tokens not found' });
+    }
+
+    let accessToken = user.spotify_access_token;
+
+    // Check if the access token is valid; if not, refresh it
+    try {
+      await axios.get('https://api.spotify.com/v1/me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    } catch (error: any) {
+      if (error.response && error.response.status === 401) {
+        // Refresh Spotify access token
+        const refreshResponse = await axios.post('https://accounts.spotify.com/api/token', null, {
+          params: {
+            grant_type: 'refresh_token',
+            refresh_token: user.spotify_refresh_token,
+            client_id: process.env.SPOTIFY_CLIENT_ID!,
+            client_secret: process.env.SPOTIFY_CLIENT_SECRET!,
+          },
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        });
+
+        accessToken = refreshResponse.data.access_token;
+
+        // Update the refreshed access token in the database
+        await User.update(
+          { spotify_access_token: accessToken },
+          { where: { user_id: userId } }
+        );
+      } else {
+        console.error('Error verifying access token:', error);
+        return res.status(500).json({ message: 'Failed to verify or refresh access token' });
+      }
+    }
+
+    // Fetch the user's top songs from Spotify
+    const topSongsResponse = await axios.get('https://api.spotify.com/v1/me/top/tracks', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: { limit: 50 },
+    });
+
+    res.status(200).json(topSongsResponse.data);
+  } catch (error) {
+    console.error('Error fetching top songs:', error);
+    res.status(500).json({ message: 'Failed to fetch top songs' });
+  }
+});
+
 export default router;

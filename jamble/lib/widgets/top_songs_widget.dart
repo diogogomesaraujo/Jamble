@@ -2,17 +2,17 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../services/user_spotify_data.dart'; // Ensure correct path
-import '../modals/top_artists_modal.dart'; // Import the popup widget
+import '../modals/top_songs_modal.dart'; // Import the popup widget
 
-class TopArtistsComponent extends StatefulWidget {
+class TopSongsComponent extends StatefulWidget {
   @override
-  _TopArtistsComponentState createState() => _TopArtistsComponentState();
+  _TopSongsComponentState createState() => _TopSongsComponentState();
 }
 
-class _TopArtistsComponentState extends State<TopArtistsComponent> {
+class _TopSongsComponentState extends State<TopSongsComponent> {
   final SpotifyService _spotifyService = SpotifyService();
-  List<Artist> _topArtists = []; // For displaying the top 3 artists
-  List<Artist> _allArtists = []; // For displaying all artists in the popup
+  List<Song> _topSongs = []; // For displaying the top 3 songs
+  List<Song> _allSongs = []; // For displaying all songs in the popup
   bool _isLoading = true;
 
   static const Color darkRed = Color(0xFF3E111B);
@@ -21,33 +21,33 @@ class _TopArtistsComponentState extends State<TopArtistsComponent> {
   @override
   void initState() {
     super.initState();
-    _fetchTopArtists();
+    _fetchTopSongs();
   }
 
-  Future<void> _fetchTopArtists() async {
+  Future<void> _fetchTopSongs() async {
     setState(() {
       _isLoading = true;
     });
     try {
-      List<Artist> artists = await _spotifyService.getTopArtistsFromBackend();
+      List<Song> songs = await _spotifyService.getTopSongsFromBackend();
       setState(() {
-        _allArtists = artists; // Store all artists for the popup
-        _topArtists = artists.take(3).toList(); // Display only top 3 in the widget
+        _allSongs = songs; // Store all songs for the popup
+        _topSongs = songs.take(3).toList(); // Display only top 3 in the widget
         _isLoading = false;
       });
     } catch (error) {
-      print('Error fetching top artists: $error');
+      print('Error fetching top songs: $error');
       setState(() {
         _isLoading = false;
       });
     }
   }
 
-  void _showTopArtistsPopup() {
+  void _showTopSongsPopup() {
     showCupertinoModalPopup(
       context: context,
       builder: (BuildContext context) {
-        return TopArtistsPopup(artists: _allArtists); // Pass all artists to the popup
+        return TopSongsPopup(songs: _allSongs); // Pass all songs to the popup
       },
     );
   }
@@ -71,7 +71,7 @@ class _TopArtistsComponentState extends State<TopArtistsComponent> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Top Artists",
+                    "Top Songs",
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       fontWeight: FontWeight.bold,
@@ -91,7 +91,7 @@ class _TopArtistsComponentState extends State<TopArtistsComponent> {
               ),
               Spacer(),
               GestureDetector(
-                onTap: _showTopArtistsPopup,
+                onTap: _showTopSongsPopup,
                 child: Text(
                   "View All",
                   style: TextStyle(
@@ -108,9 +108,9 @@ class _TopArtistsComponentState extends State<TopArtistsComponent> {
           _isLoading
               ? Center(child: CupertinoActivityIndicator())
               : Column(
-                  children: _topArtists.asMap().entries.map((entry) {
+                  children: _topSongs.asMap().entries.map((entry) {
                     int index = entry.key;
-                    Artist artist = entry.value;
+                    Song song = entry.value;
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Row(
@@ -134,9 +134,9 @@ class _TopArtistsComponentState extends State<TopArtistsComponent> {
                           // Image Column with fixed size
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: artist.imageUrls.isNotEmpty
+                            child: song.imageUrls.isNotEmpty
                                 ? Image.network(
-                                    artist.imageUrls.first,
+                                    song.imageUrls.first,
                                     width: 50,
                                     height: 50,
                                     fit: BoxFit.cover,
@@ -148,17 +148,31 @@ class _TopArtistsComponentState extends State<TopArtistsComponent> {
                                   ),
                           ),
                           SizedBox(width: 15),
-                          // Name Column with Expanded widget
+                          // Song Name and Artist Column
                           Expanded(
-                            child: Text(
-                              artist.name,
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: darkRed,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  song.name,
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: darkRed,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  song.artistName,
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
+                                    color: darkRed.withOpacity(0.6),
+                                    fontSize: 14,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
                           ),
                         ],

@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:frontend/services/user_spotify_data.dart';
 
-class TopArtistsPopup extends StatelessWidget {
-  final List<Artist> artists;
+class TopSongsPopup extends StatelessWidget {
+  final List<Song> songs;
 
-  TopArtistsPopup({required this.artists});
+  TopSongsPopup({required this.songs});
 
   static const Color darkRed = Color(0xFF3E111B);
   static const Color peach = Color(0xFFFEA57D);
@@ -39,7 +39,7 @@ class TopArtistsPopup extends StatelessWidget {
           ),
           SizedBox(height: 10),
           Text(
-            "Top Artists",
+            "Top Songs",
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.bold,
@@ -67,9 +67,9 @@ class TopArtistsPopup extends StatelessWidget {
               child: ListView.builder(
                 shrinkWrap: true,
                 physics: NeverScrollableScrollPhysics(),
-                itemCount: artists.length,
+                itemCount: songs.length,
                 itemBuilder: (context, index) {
-                  final artist = artists[index];
+                  final song = songs[index];
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: Row(
@@ -90,12 +90,12 @@ class TopArtistsPopup extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: 10),
-                        // Image Column with fixed size
+                        // Image Column with fixed size for album cover
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: artist.imageUrls.isNotEmpty
+                          child: song.imageUrls.isNotEmpty
                               ? Image.network(
-                                  artist.imageUrls.first,
+                                  song.imageUrls.first,
                                   width: 40,
                                   height: 40,
                                   fit: BoxFit.cover,
@@ -107,17 +107,31 @@ class TopArtistsPopup extends StatelessWidget {
                                 ),
                         ),
                         SizedBox(width: 10),
-                        // Name Column with Expanded widget
+                        // Song Title and Artist Column with Expanded widget
                         Expanded(
-                          child: Text(
-                            artist.name,
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: darkRed,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                song.name,
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: darkRed,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                song.artistName,
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 14,
+                                  color: darkRed.withOpacity(0.6),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                       ],
