@@ -1,3 +1,4 @@
+// userModel.ts
 import { Sequelize, DataTypes, Model, Optional } from 'sequelize';
 import dotenv from 'dotenv';
 
@@ -12,9 +13,9 @@ interface UserAttributes {
     email: string;
     password?: string;
     is_spotify_account: boolean;
-    spotify_id?: string | null;  // Spotify ID for users logging in via Spotify
-    spotify_access_token?: string | null;  // Spotify access token
-    spotify_refresh_token?: string | null;  // Spotify refresh token
+    spotify_id?: string | null;
+    spotify_access_token?: string | null;
+    spotify_refresh_token?: string | null;
     small_description?: string | null;
     user_image?: string | null;
     user_wallpaper?: string | null;
@@ -49,24 +50,24 @@ User.init(
     {
         user_id: {
             type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,  // Automatically generates UUID
+            defaultValue: DataTypes.UUIDV4,
             primaryKey: true,
         },
         username: {
             type: DataTypes.STRING,
-            allowNull: true,  // Spotify users may not have a username initially
+            allowNull: true,
         },
         email: {
             type: DataTypes.STRING,
             allowNull: false,
-            unique: true,  // Enforce unique emails
+            unique: true,
             validate: {
-                isEmail: true,  // Ensure valid email format
+                isEmail: true,
             },
         },
         password: {
             type: DataTypes.STRING,
-            allowNull: true,  // Password can be null for Spotify users
+            allowNull: true,
         },
         is_spotify_account: {
             type: DataTypes.BOOLEAN,
@@ -75,49 +76,47 @@ User.init(
         spotify_id: {
             type: DataTypes.STRING,
             allowNull: true,
-            unique: true,  // Enforce unique Spotify ID
+            unique: true,
         },
         spotify_access_token: {
             type: DataTypes.STRING,
-            allowNull: true,  // Access token to interact with Spotify API
+            allowNull: true,
         },
         spotify_refresh_token: {
             type: DataTypes.STRING,
-            allowNull: true,  // Refresh token to get new access tokens
+            allowNull: true,
         },
         small_description: {
             type: DataTypes.STRING,
             allowNull: true,
             validate: {
-                len: [0, 255],  // Limit description length to 255 characters
+                len: [0, 255],
             },
         },
         user_image: {
             type: DataTypes.STRING,
             allowNull: true,
             validate: {
-                isUrl: true,  // Ensure it's a valid URL (if using URL)
+                isUrl: true,
             },
         },
         user_wallpaper: {
             type: DataTypes.STRING,
             allowNull: true,
             validate: {
-                isUrl: true,  // Ensure it's a valid URL (if using URL)
+                isUrl: true,
             },
         },
         favorite_albums: {
-            type: DataTypes.ARRAY(DataTypes.STRING),  // Array of strings for favorite album IDs
+            type: DataTypes.ARRAY(DataTypes.STRING),
             allowNull: true,
             validate: {
                 isArrayOfStrings(value: string[] | null) {
-                    // Ensure value is an array of strings
                     if (value && (!Array.isArray(value) || value.some((item) => typeof item !== 'string'))) {
                         throw new Error('favorite_albums must be an array of strings.');
                     }
                 },
                 maxItems(value: string[] | null) {
-                    // Ensure array length does not exceed 5
                     if (value && value.length > 5) {
                         throw new Error('You can only select up to 5 favorite albums.');
                     }
@@ -136,7 +135,7 @@ User.init(
     {
         sequelize,
         tableName: 'users',
-        timestamps: true,  // Automatically handle `createdAt` and `updatedAt`
+        timestamps: true,
     }
 );
 

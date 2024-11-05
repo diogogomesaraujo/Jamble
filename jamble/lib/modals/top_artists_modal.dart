@@ -49,7 +49,7 @@ class TopArtistsPopup extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           Text(
-            "In the Last 4 Weeks",
+            "In the Last 6 Months",
             style: TextStyle(
               fontFamily: 'Poppins',
               fontSize: 14,

@@ -114,7 +114,7 @@ router.get('/spotify/top-artists', authenticateJWT, async (req: Request, res: Re
     // Fetch the user's top artists from Spotify
     const topArtistsResponse = await axios.get('https://api.spotify.com/v1/me/top/artists', {
       headers: { Authorization: `Bearer ${accessToken}` },
-      params: { limit: 50 },
+      params: { limit: 50, time_range: 'medium_term'},
     });
 
     res.status(200).json(topArtistsResponse.data);
@@ -172,7 +172,7 @@ router.get('/spotify/top-songs', authenticateJWT, async (req: Request, res: Resp
     // Fetch the user's top songs from Spotify
     const topSongsResponse = await axios.get('https://api.spotify.com/v1/me/top/tracks', {
       headers: { Authorization: `Bearer ${accessToken}` },
-      params: { limit: 50 },
+      params: { limit: 50 , time_range: 'medium_term'},
     });
 
     res.status(200).json(topSongsResponse.data);

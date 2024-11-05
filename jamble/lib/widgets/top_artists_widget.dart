@@ -80,7 +80,7 @@ class _TopArtistsComponentState extends State<TopArtistsComponent> {
                     ),
                   ),
                   Text(
-                    "In the Last 4 Weeks",
+                    "In the Last 6 Months",
                     style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 14,

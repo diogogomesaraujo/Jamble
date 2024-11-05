@@ -4,6 +4,7 @@ import session from 'express-session';
 import cors from 'cors';  // Import CORS package
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
+import postRoutes from './routes/postRoutes';
 import './services/spotifyAuthService';  // Import Spotify service to initialize passport strategy
 import dotenv from 'dotenv';
 
@@ -42,5 +43,6 @@ app.use(passport.session());  // Enable persistent login sessions
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/posts', postRoutes);
 
 export default app;
