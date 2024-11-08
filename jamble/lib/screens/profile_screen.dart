@@ -5,7 +5,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:frontend/services/favourite_albums.dart';
 import 'package:frontend/widgets/top_artists_widget.dart';
 import 'package:frontend/widgets/top_songs_widget.dart';
+import 'package:eva_icons_flutter/eva_icons_flutter.dart';
+import 'package:frontend/modals/post_modal.dart'; // Correct import for FavouriteItemModal
 
+// Define color constants
 const Color darkRed = Color(0xFF3E111B);
 const Color grey = Color(0xFFF2F2F2);
 const Color peach = Color(0xFFFEA57D);
@@ -44,7 +47,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final userImage = await _secureStorage.read(key: 'user_image');
       final spotifyId = await _secureStorage.read(key: 'user_spotify_id');
 
-      // Check if Spotify ID exists and is not empty
       _hasSpotifyId = spotifyId != null && spotifyId.isNotEmpty;
 
       List<Album> albumList = [];
@@ -136,99 +138,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Center(child: CupertinoActivityIndicator());
-    }
-
     return CupertinoPageScaffold(
       backgroundColor: beige,
-      child: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Top padding for separation from content above
-              SizedBox(height: 80),
-
-              // Profile section
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 20),
-                decoration: BoxDecoration(
-                  color: beige,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    // Profile Image
-                    _buildProfileImage(),
-                    
-                    // Username
-                    SizedBox(height: 16),
-                    Text(
-                      _username,
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                        color: darkRed,
+      child: Stack(
+        children: [
+          Center(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(height: 80),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    decoration: BoxDecoration(
+                      color: beige,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(30),
+                        bottomRight: Radius.circular(30),
                       ),
                     ),
-
-                    // Description (Subtitle)
-                    if (_description.isNotEmpty) ...[
-                      SizedBox(height: 8),
-                      Text(
-                        _description,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 14,
-                          color: darkRed.withOpacity(0.7),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-
-                    // Favorite Albums Row
-                    SizedBox(height: 20),
-                    if (_favoriteAlbums.isNotEmpty)
-                      _buildFavoriteAlbumsRow(),
-
-                    // Edit Profile Button
-                    SizedBox(height: 24),
-                    _buildEditProfileButton(),
-
-                    // Toggle for "Jambles" and "On Repeat"
-                    SizedBox(height: 30),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    child: Column(
                       children: [
-                        _buildOptionButton("Jambles"),
-                        if (_hasSpotifyId) ...[
-                          SizedBox(width: 20),
-                          _buildOptionButton("On Repeat"),
+                        _buildProfileImage(),
+                        SizedBox(height: 16),
+                        Text(
+                          _username,
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                            color: darkRed,
+                          ),
+                        ),
+                        if (_description.isNotEmpty) ...[
+                          SizedBox(height: 8),
+                          Text(
+                            _description,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 14,
+                              color: darkRed.withOpacity(0.7),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ],
+                        SizedBox(height: 20),
+                        if (_favoriteAlbums.isNotEmpty)
+                          _buildFavoriteAlbumsRow(),
+                        SizedBox(height: 24),
+                        _buildEditProfileButton(),
+                        SizedBox(height: 30),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildOptionButton("Jambles"),
+                            if (_hasSpotifyId) ...[
+                              SizedBox(width: 20),
+                              _buildOptionButton("On Repeat"),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
+                  ),
+                  if (_selectedOption == "On Repeat" && _hasSpotifyId) ...[
+                    SizedBox(height: 0),
+                    TopArtistsComponent(),
+                    SizedBox(height: 0),
+                    TopSongsComponent(),
                   ],
-                ),
+                  SizedBox(height: 40),
+                ],
               ),
-
-              // Conditional rendering based on selected option
-              if (_selectedOption == "On Repeat" && _hasSpotifyId) ...[
-                SizedBox(height: 0),
-                TopArtistsComponent(),
-                SizedBox(height: 0), // Reduced spacing between artists and songs
-                TopSongsComponent(),
-              ],
-
-              SizedBox(height: 40), // Bottom padding for visual breathing room
-            ],
+            ),
           ),
-        ),
+          if (_selectedOption == "Jambles") _buildAddPostButton(),
+        ],
       ),
     );
   }
@@ -374,6 +360,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAddPostButton() {
+    return Positioned(
+      bottom: 20,
+      right: 20,
+      child: GestureDetector(
+        onTap: () {
+          _showPostModal(); // Show FavouriteItemModal on button tap
+        },
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: darkRed,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Icon(
+            EvaIcons.plus,
+            color: white100,
+            size: 30,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPostModal() {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) {
+        return FavouriteItemModal(
+          onItemSelected: (item) {
+            setState(() {
+              if (item != null) {
+                _favoriteAlbums.add(item);
+              }
+            });
+          },
+          favouriteItems: _favoriteAlbums,
+        );
+      },
     );
   }
 }
