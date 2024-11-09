@@ -33,12 +33,21 @@ export const createPost = async (req: Request, res: Response): Promise<Response>
     }
 };
 
-// Function to retrieve all posts
 export const getPosts = async (req: Request, res: Response): Promise<Response> => {
     try {
+        // Retrieve user_id from the JWT token (added by auth middleware)
+        const userId = (req.user as { user_id: string })?.user_id;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized access' });
+        }
+
+        // Fetch posts for the authenticated user
         const posts = await Post.findAll({
-            include: { model: User, as: 'user', attributes: ['username', 'user_image'] },
+            where: { user_id: userId }, // Ensure it matches user_id field in Post model
+            order: [['createdAt', 'DESC']], // Order posts by most recent
         });
+
         return res.status(200).json(posts);
     } catch (error) {
         console.error('Error retrieving posts:', error);

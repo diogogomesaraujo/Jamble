@@ -2,11 +2,13 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:eva_icons_flutter/eva_icons_flutter.dart';
+import 'package:frontend/services/post.dart';
 import 'package:frontend/services/favourite_albums.dart';
+import 'package:frontend/widgets/post_widget.dart';
 import 'package:frontend/widgets/top_artists_widget.dart';
 import 'package:frontend/widgets/top_songs_widget.dart';
-import 'package:eva_icons_flutter/eva_icons_flutter.dart';
-import 'package:frontend/modals/post_modal.dart'; // Correct import for FavouriteItemModal
+import 'package:frontend/modals/post_modal.dart'; // Ensure correct import
 
 // Define color constants
 const Color darkRed = Color(0xFF3E111B);
@@ -22,22 +24,20 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  final PostService _postService = PostService();
   String _username = '';
   String _description = '';
   String _userImage = '';
   List<Album> _favoriteAlbums = [];
+  List<Post> _posts = [];
   bool _isLoading = true;
-  bool _isFirstLoad = true;
   String _selectedOption = 'Jambles';
   bool _hasSpotifyId = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_isFirstLoad) {
-      _loadUserInfo();
-      _isFirstLoad = false;
-    }
+  void initState() {
+    super.initState();
+    _loadUserInfo();
   }
 
   Future<void> _loadUserInfo() async {
@@ -71,6 +71,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _loadPosts() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final postList = await _postService.getPosts();
+      setState(() {
+        _posts = postList;
+        _isLoading = false;
+      });
+    } catch (e) {
+      _showNotificationBanner("Error loading posts: ${e.toString()}", Colors.red);
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   void _showNotificationBanner(String message, Color backgroundColor) {
     showCupertinoDialog(
       context: context,
@@ -90,13 +108,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   decoration: BoxDecoration(
                     color: backgroundColor.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -142,76 +153,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: beige,
       child: Stack(
         children: [
-          Center(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(height: 80),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    decoration: BoxDecoration(
-                      color: beige,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(30),
-                        bottomRight: Radius.circular(30),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        _buildProfileImage(),
-                        SizedBox(height: 16),
-                        Text(
-                          _username,
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                            color: darkRed,
-                          ),
-                        ),
-                        if (_description.isNotEmpty) ...[
-                          SizedBox(height: 8),
-                          Text(
-                            _description,
-                            style: TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 14,
-                              color: darkRed.withOpacity(0.7),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                        SizedBox(height: 20),
-                        if (_favoriteAlbums.isNotEmpty)
-                          _buildFavoriteAlbumsRow(),
-                        SizedBox(height: 24),
-                        _buildEditProfileButton(),
-                        SizedBox(height: 30),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildOptionButton("Jambles"),
-                            if (_hasSpotifyId) ...[
-                              SizedBox(width: 20),
-                              _buildOptionButton("On Repeat"),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_selectedOption == "On Repeat" && _hasSpotifyId) ...[
-                    SizedBox(height: 0),
-                    TopArtistsComponent(),
-                    SizedBox(height: 0),
-                    TopSongsComponent(),
+          CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(height: 80),
+                    _buildProfileHeader(),
+                    _buildOptionSelector(),
+                    if (_selectedOption == "Jambles") _buildPostsContent(),
+                    if (_selectedOption == "On Repeat" && _hasSpotifyId)
+                      _buildSpotifyContent(),
                   ],
-                  SizedBox(height: 40),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
           if (_selectedOption == "Jambles") _buildAddPostButton(),
         ],
@@ -219,10 +176,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildProfileHeader() {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 20),
+      decoration: BoxDecoration(
+        color: beige,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
+      child: Column(
+        children: [
+          _buildProfileImage(),
+          SizedBox(height: 16),
+          Text(
+            _username,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              color: darkRed,
+            ),
+          ),
+          if (_description.isNotEmpty) ...[
+            SizedBox(height: 8),
+            Text(
+              _description,
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 14,
+                color: darkRed.withOpacity(0.7),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+          if (_favoriteAlbums.isNotEmpty) ...[
+            SizedBox(height: 20),
+            _buildFavoriteAlbumsRow(),
+          ],
+          SizedBox(height: 24),
+          _buildEditProfileButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionSelector() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildOptionButton("Jambles"),
+        if (_hasSpotifyId) ...[
+          SizedBox(width: 20),
+          _buildOptionButton("On Repeat"),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPostsContent() {
+    return _isLoading
+        ? Center(child: CupertinoActivityIndicator())
+        : _buildPostsList();
+  }
+
+  Widget _buildSpotifyContent() {
+    return Column(
+      children: [
+        TopArtistsComponent(),
+        TopSongsComponent(),
+      ],
+    );
+  }
+
+  Widget _buildPostsList() {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      itemCount: _posts.length,
+      itemBuilder: (context, index) {
+        return PostWidget(
+          post: _posts[index],
+        );
+      },
+    );
+  }
+
   Widget _buildProfileImage() {
     return GestureDetector(
       onTap: () {
-        // Navigate to image selection modal or add edit logic
+        // Logic for editing profile image
       },
       child: Container(
         width: 100,
@@ -273,13 +317,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fit: BoxFit.cover,
                     )
                   : null,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
             ),
           ),
         );
@@ -319,7 +356,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          color: null,
         ),
       ),
     );
@@ -332,6 +368,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _selectedOption = option;
         });
+        if (_selectedOption == "Jambles") {
+          _loadPosts();
+        }
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -368,28 +407,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       bottom: 20,
       right: 20,
       child: GestureDetector(
-        onTap: () {
-          _showPostModal(); // Show FavouriteItemModal on button tap
-        },
+        onTap: _showPostModal,
         child: Container(
           width: 56,
           height: 56,
           decoration: BoxDecoration(
             color: darkRed,
             shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: Offset(0, 4),
-              ),
-            ],
           ),
-          child: Icon(
-            EvaIcons.plus,
-            color: white100,
-            size: 30,
-          ),
+          child: Icon(EvaIcons.plus, color: white100, size: 30),
         ),
       ),
     );
@@ -403,7 +429,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onItemSelected: (item) {
             setState(() {
               if (item != null) {
-                _favoriteAlbums.add(item);
+                _posts.insert(0, item as Post);
               }
             });
           },
