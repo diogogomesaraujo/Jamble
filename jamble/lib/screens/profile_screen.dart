@@ -8,7 +8,7 @@ import 'package:frontend/services/favourite_albums.dart';
 import 'package:frontend/widgets/post_widget.dart';
 import 'package:frontend/widgets/top_artists_widget.dart';
 import 'package:frontend/widgets/top_songs_widget.dart';
-import 'package:frontend/modals/post_modal.dart'; // Ensure correct import
+import 'package:frontend/modals/post_modal.dart';
 
 // Define color constants
 const Color darkRed = Color(0xFF3E111B);
@@ -38,6 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadUserInfo();
+    _loadPosts();
   }
 
   Future<void> _loadUserInfo() async {
@@ -87,6 +88,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _removePost(String postId) {
+    setState(() {
+      _posts.removeWhere((post) => post.id == postId);
+    });
+    _showNotificationBanner("Post deleted successfully", Colors.green);
   }
 
   void _showNotificationBanner(String message, Color backgroundColor) {
@@ -258,6 +266,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       itemBuilder: (context, index) {
         return PostWidget(
           post: _posts[index],
+          onPostDeleted: () => _removePost(_posts[index].id),
         );
       },
     );

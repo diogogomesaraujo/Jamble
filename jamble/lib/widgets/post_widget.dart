@@ -6,8 +6,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class PostWidget extends StatefulWidget {
   final Post post;
+  final VoidCallback onPostDeleted;
 
-  const PostWidget({required this.post});
+  const PostWidget({
+    required this.post,
+    required this.onPostDeleted,
+  });
 
   @override
   _PostWidgetState createState() => _PostWidgetState();
@@ -16,6 +20,7 @@ class PostWidget extends StatefulWidget {
 class _PostWidgetState extends State<PostWidget> {
   final SpotifyService _spotifyService = SpotifyService();
   final FlutterSecureStorage _storage = FlutterSecureStorage();
+  final PostService _postService = PostService();
 
   String _referenceInfo = "";
   String _username = "";
@@ -23,7 +28,7 @@ class _PostWidgetState extends State<PostWidget> {
   bool _isLoading = true;
 
   static const Color darkRed = Color(0xFF3E111B);
-  static const Color dividerColor = Color(0xFFD9D9D9); // Subtle line color
+  static const Color dividerColor = Color(0xFFD9D9D9);
 
   @override
   void initState() {
@@ -41,7 +46,7 @@ class _PostWidgetState extends State<PostWidget> {
         _username = username ?? "Unknown";
         _userImage = userImage ?? "";
       });
-    } catch (error) {
+    } catch (_) {
       setState(() {
         _username = "Unknown";
         _userImage = "";
@@ -74,12 +79,74 @@ class _PostWidgetState extends State<PostWidget> {
         _referenceInfo = referenceInfo;
         _isLoading = false;
       });
-    } catch (error) {
+    } catch (_) {
       setState(() {
         _referenceInfo = "Error fetching data";
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _deletePost(BuildContext context) async {
+    try {
+      final isDeleted = await _postService.deletePost(widget.post.id);
+      if (isDeleted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: Text("Success"),
+            content: Text("Post deleted successfully"),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Navigator.pop(context),
+                child: Text("OK"),
+              ),
+            ],
+          ),
+        );
+        widget.onPostDeleted();
+      }
+    } catch (error) {
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: Text("Error"),
+          content: Text("Failed to delete post: $error"),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context),
+              child: Text("OK"),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _showOptions(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoActionSheet(
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _deletePost(context);
+              },
+              isDestructiveAction: true,
+              child: const Text("Delete Post"),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text("Cancel"),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -100,9 +167,7 @@ class _PostWidgetState extends State<PostWidget> {
                     radius: 25,
                     backgroundImage: _userImage.isNotEmpty
                         ? NetworkImage(_userImage)
-                        : NetworkImage(
-                            'https://via.placeholder.com/150?text=User',
-                          ),
+                        : AssetImage('assets/images/default_user.png') as ImageProvider,
                     backgroundColor: Colors.grey[300],
                   ),
                   const SizedBox(width: 10),
@@ -140,6 +205,15 @@ class _PostWidgetState extends State<PostWidget> {
                       ],
                     ),
                   ),
+                  // Options Button
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    child: const Icon(
+                      CupertinoIcons.ellipsis_vertical,
+                      color: darkRed,
+                    ),
+                    onPressed: () => _showOptions(context),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -150,14 +224,14 @@ class _PostWidgetState extends State<PostWidget> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 18, // Increased font size
+                  fontSize: 18,
                   color: darkRed.withOpacity(0.8),
                 ),
               ),
             ],
           ),
         ),
-        // Subtle divisory line
+        // Divider Line
         Divider(
           color: darkRed.withOpacity(0.1),
           thickness: 1,
