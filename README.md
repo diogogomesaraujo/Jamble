@@ -6,7 +6,25 @@
 
 ## Screenshots 📸
 
-Coming soon! Stay tuned to see how awesome Jamble looks in action! 🚀
+### Music Discovery & Sharing 🎵
+<div align="center">
+  <img src="demo/feed.png" alt="Feed Screen" width="250"/>
+  <img src="demo/search.png" alt="Search Screen" width="250"/>
+  <img src="demo/post.png" alt="Post Screen" width="250"/>
+</div>
+
+### Profile & Authentication 👤
+<div align="center">
+  <img src="demo/profile.png" alt="Profile Screen" width="250"/>
+  <img src="demo/login.png" alt="Login Screen" width="250"/>
+  <img src="demo/register.png" alt="Register Screen" width="250"/>
+</div>
+
+### Spotify Integration 🎧
+<div align="center">
+  <img src="demo/spotify_login.png" alt="Spotify Login" width="250"/>
+  <img src="demo/top_songs.png" alt="Top Songs" width="250"/>
+</div>
 
 ## Project Structure 📂
 
