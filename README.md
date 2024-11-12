@@ -21,13 +21,9 @@
 ### Profiles Full of Character 🎧
 <div align="left">
   <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/profileposts.png" alt="Post" width="200"/>
+  <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/writepost.png" alt="Post" width="200"/>
   <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/profileonrepeat.png" alt="On Repeat" width="200"/>
   <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/favouritesongs.png" alt="Songs" width="200"/>
-</div>
-
-### Jamble About your Favourite Artists, Albums and Songs 🎧
-<div align="left">
-  <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/writepost.png" alt="Post" width="200"/>
 </div>
 
 ## Project Structure 📂
