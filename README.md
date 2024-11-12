@@ -6,24 +6,28 @@
 
 ## Screenshots 📸
 
-### Music Discovery & Sharing 🎵
-<div align="center">
-  <img src="demo/feed.png" alt="Feed Screen" width="250"/>
-  <img src="demo/search.png" alt="Search Screen" width="250"/>
-  <img src="demo/post.png" alt="Post Screen" width="250"/>
+### Authentication 👤
+<div align="left">
+  <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/signin.png" alt="Login Screen" width="200"/>
+  <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/signup.png" alt="Register Screen" width="200"/>
 </div>
 
-### Profile & Authentication 👤
-<div align="center">
-  <img src="demo/profile.png" alt="Profile Screen" width="250"/>
-  <img src="demo/login.png" alt="Login Screen" width="250"/>
-  <img src="demo/register.png" alt="Register Screen" width="250"/>
+### Edit Profile 👤
+<div align="left">
+  <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/editprofile.png" alt="Edit Profile Form" width="200"/>
+  <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/choosealbum.png" alt="Choose Album" width="200"/>
 </div>
 
-### Spotify Integration 🎧
-<div align="center">
-  <img src="demo/spotify_login.png" alt="Spotify Login" width="250"/>
-  <img src="demo/top_songs.png" alt="Top Songs" width="250"/>
+### Profiles Full of Character 🎧
+<div align="left">
+  <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/profileposts.png" alt="Post" width="200"/>
+  <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/profileonrepeat.png" alt="On Repeat" width="200"/>
+  <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/favouritesongs.png" alt="Songs" width="200"/>
+</div>
+
+### Jamble About your Favourite Artists, Albums and Songs 🎧
+<div align="left">
+  <img src="https://github.com/diogogomesaraujo/Jamble/blob/main/demo/writepost.png" alt="Post" width="200"/>
 </div>
 
 ## Project Structure 📂
